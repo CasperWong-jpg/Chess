@@ -15,6 +15,6 @@ How to run project:
 1. Open main.py file 
   – I would recommend using VSCode and installing the Python extension by Microsoft within the software
 
-2. Change line 16 of main.py so that you provide the path from current terminal directory to the "Chess" folder
+2. Change line 16 of main.py so that you provide the path from current terminal directory to the "Chess-main" folder
  
 3. Run main.py and enjoy!

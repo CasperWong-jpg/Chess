@@ -13,7 +13,7 @@ import time
 
 import os
 # USER INPUT: Please input the path to the working directory in the line below:
-workingDirectory = 'downloads/Chess'  # Default is set to "downloads/TP" for Macbook users
+workingDirectory = 'downloads/Chess-main'  # Default is set to "downloads/TP" for Macbook users
 os.chdir(workingDirectory)
 
 # Below file contains functions + attributes that reinforces chess rules, as well as chess AI
