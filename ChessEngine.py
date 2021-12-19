@@ -14,7 +14,7 @@ import time
 class ChessEngine(object):
     stalemate = False
 
-    def isLegalMove(self, board, currentRow, currentCol, nextRow, nextCol, generatedMove = False):
+    def isLegalMove(self, board, currentRow, currentCol, nextRow, nextCol):
         dRow, dCol = nextRow - currentRow, nextCol - currentCol
         # Check piece can actually do inputted move
         if (dRow, dCol) not in self.moves or isinstance(board[currentRow][currentCol], Pawn):
@@ -83,6 +83,8 @@ class ChessEngine(object):
     # Check to see if move is legal and safe (does not put king in check)
     @staticmethod
     def tryMove(board, row, col, nextRow, nextCol):
+        if board[row][col] == None:
+            return False
         playerColor = board[row][col].color
         if board[row][col].isLegalMove(board, row, col, nextRow, nextCol):
             # Do move
@@ -184,13 +186,18 @@ class ChessEngine(object):
         if whiteToMove and ChessEngine.isInMate(board, bKRow, bKCol, crazyhousePieces):
             if board[bKRow][bKCol].inCheck: # black is in checkmate!
                 board[bKRow][bKCol].inCheckmate = True
+                return "white wins"
             else: 
-                ChessEngine.stalemate = True # it is a stalemate!              
+                ChessEngine.stalemate = True # it is a stalemate!    
+                return "stalemate"          
         elif not whiteToMove and ChessEngine.isInMate(board, wKRow, wKCol, crazyhousePieces):
             if board[wKRow][wKCol].inCheck: # white is in checkmate!
                 board[wKRow][wKCol].inCheckmate = True
+                return "black wins"
             else: 
                 ChessEngine.stalemate = True # stalemate!
+                return "stalemate"
+        return None
 
     @staticmethod
     def generateMoves(board, color):
@@ -291,12 +298,15 @@ class ChessEngine(object):
         # Find best move
         if color == 'b':
             (score, bestMoves) = ChessEngine.mini((board), -100000, 100000, depth)
-        # print(score, bestMoves)
+        elif color == 'w':
+            (score, bestMoves) = ChessEngine.maxi((board), -100000, 100000, depth)
+
         # Make move
         if len(bestMoves) == 0: return
         (row, col, nextRow, nextCol, points) = random.choice(bestMoves)
         board[nextRow][nextCol] = board[row][col]
         board[row][col] = None
+
         # Check rules & game status (ie. checkmates)
         ChessEngine.specialRules(board, nextRow, nextCol)
         if color == 'w': whiteToMove = True
@@ -341,6 +351,8 @@ class King(ChessEngine):
             self.points = -900
     def __eq__(self, other):
         return isinstance(other, King) and self.color == other.color
+    def __hash__(self):
+        return hash(("King", self.color))
 
 class Queen(ChessEngine):
     def __init__(self, color):
@@ -355,6 +367,10 @@ class Queen(ChessEngine):
             self.points = 90
         elif color == 'b':
             self.points = -90
+    def __eq__(self, other):
+        return isinstance(other, Queen) and self.color == other.color
+    def __hash__(self):
+        return hash(("Queen", self.color))
 
 class Bishop(ChessEngine):
     def __init__(self, color):
@@ -368,6 +384,10 @@ class Bishop(ChessEngine):
             self.points = 30
         elif color == 'b':
             self.points = -30
+    def __eq__(self, other):
+        return isinstance(other, Bishop) and self.color == other.color
+    def __hash__(self):
+        return hash(("Bishop", self.color))
 
 class Knight(ChessEngine):
     def __init__(self, color):
@@ -381,6 +401,10 @@ class Knight(ChessEngine):
             self.points = 30
         elif color == 'b':
             self.points = -30
+    def __eq__(self, other):
+        return isinstance(other, Knight) and self.color == other.color
+    def __hash__(self):
+        return hash(("Knight", self.color))
 
 class Rook(ChessEngine):
     def __init__(self, color):
@@ -397,6 +421,10 @@ class Rook(ChessEngine):
             self.points = 50
         elif color == 'b':
             self.points = -50
+    def __hash__(self):
+        return hash(("Rook", self.color))
+    def __eq__(self, other):
+        return isinstance(other, Rook) and self.color == other.color
 
 class Pawn(ChessEngine):
     def __init__(self, color):
@@ -413,3 +441,7 @@ class Pawn(ChessEngine):
             self.points = 10
         elif color == 'b':
             self.points = -10
+    def __eq__(self, other):
+        return isinstance(other, Pawn) and self.color == other.color
+    def __hash__(self):
+        return hash(("Pawn", self.color))

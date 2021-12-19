@@ -11,11 +11,6 @@ from cmu_112_graphics import *
 import random
 import time
 
-import os
-# USER INPUT: Please input the path to the working directory in the line below:
-workingDirectory = 'downloads/Chess-main'  # Default is set to "downloads/TP" for Macbook users
-os.chdir(workingDirectory)
-
 # Below file contains functions + attributes that reinforces chess rules, as well as chess AI
 from ChessEngine import *
 
@@ -75,7 +70,7 @@ class NormalChessGame(Mode):
         self.whiteToMove = True
         self.pawnPromotion = None
         self.timerDelay = 1000   # AI checking if it is his turn yet
-        self.cheated = False    # Player cannot just turn on AI after wining to improve leaderboard
+        self.cheated = False    # Player cannot just turn on AI after winning to improve leaderboard
     
     # Function is taken from https://www.cs.cmu.edu/~112/notes/notes-animations-part1.html
     def pointInGrid(self, x, y):

@@ -13,6 +13,11 @@ How to run project:
 2. Change line 16 of main.py so that you provide the path from current terminal directory to the "Chess-main" folder
  
 3. Run main.py and enjoy!
+
+ALTERNATIVE (Does not require installation of module):
+If there is issues downloading PIL/Pillow and Requests, you can play on a simple Command Line interface.
+
+1. Open simple-main.py and run!
 __________
 
 Modules and libraries to download:
