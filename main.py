@@ -195,6 +195,15 @@ class NormalChessGame(Mode):
             self.board[1][3] = self.board[1][4] = None
             self.board[3][3], self.board[2][4] = Pawn('b'), Pawn('b')
             self.whiteToMove = True
+        elif event.key == '5':    # black pawn promotion
+            self.board = self.makeBoard()
+            # white pieces
+            self.board[6][7] = self.board[7][7] = None
+            self.board[5][5] = Rook('w')
+            # black pieces
+            self.board[1][6] = None
+            self.board[6][7] = Pawn('b')
+            self.whiteToMove = False
 
     def timerFired(self):
         if self.AIDifficulty != None and not self.whiteToMove:
