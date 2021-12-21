@@ -35,3 +35,10 @@ __________
 How to implement as Lichess bot:
 See instructions here: https://github.com/ShailChoksi/lichess-bot
 
+Directions for Mac
+1. Change terminal to lichess_bot directory
+2. Run: " python3 lichess-bot.py " 
+
+__________
+Coming soon:
+Better evaluation heuristics (ie. Piece-square tables) https://www.freecodecamp.org/news/simple-chess-ai-step-by-step-1d55a9266977/ 

@@ -154,7 +154,7 @@ def start():
 
                 engine_move = translate_UCI_to_engine(board, UCI_move)
                 if (engine_move != None and 
-                    ChessEngine.tryMove(board, *engine_move[0:4])): break
+                    engine_move[0:4] in possibleMoves): break
                 print("Invalid move, try again \n")
             movePiece(board, *engine_move[0:4])
             ChessEngine.specialRules(board, *engine_move[2:4], False, engine_move[4])
