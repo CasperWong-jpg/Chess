@@ -17,7 +17,10 @@ ___________
 Implementation stages (test after each stage):
 Reference guide – https://www.freecodecamp.org/news/simple-chess-ai-step-by-step-1d55a9266977/
 
-Board evaluation
+Material evaluation
+ – Done basic evaluation!
+  – Further steps: can better improve material evaluation, but do after board pos evaluation
+  – See: https://www.chessprogramming.org/Material
 
 Move generation
 

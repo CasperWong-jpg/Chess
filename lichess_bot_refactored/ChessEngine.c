@@ -26,32 +26,45 @@ enum enumSquare {  // 0 - 63
     a8, b8, c8, d8, e8, f8, g8, h8
 };
 
+const int index64[64] = {
+    0, 47,  1, 56, 48, 27,  2, 60,
+    57, 49, 41, 37, 28, 16,  3, 61,
+    54, 58, 35, 52, 50, 42, 21, 44,
+    38, 32, 29, 23, 17, 11,  4, 62,
+    46, 55, 26, 59, 40, 36, 15, 53,
+    34, 51, 20, 43, 31, 22, 10, 45,
+    25, 39, 14, 33, 19, 30,  9, 24,
+    13, 18,  8, 12,  7,  6,  5, 63
+};
 
-void render(int64_t *bbBoard, int index) {
+// Cite: this function is from https://www.chessprogramming.org/BitScan
+// Finds index of the least significant 1 bit
+int bitScanForward(uint64_t bb) {
+    REQUIRES(bb != 0);
+    const uint64_t debruijn64 = (0x03f79d71b4cb0a89);
+    assert (bb != 0);
+    return index64[((bb ^ (bb-1)) * debruijn64) >> 58];
+}
+
+void render(uint64_t *bbBoard, int index) {
+    ASSERT(0 <= index && index < 14);
+    
     char *s = "PNBRQKApnbrqka";
     printf("Board representation for %c: \n", s[index]);
-    if (index == 14) {
-        for (int i = 0; i < num_pieceTypes; i++){
-            return;
-        }
-    }
-    else {
-        ASSERT(0 <= index && index < 14);
-        int64_t currBoard = bbBoard[index];
-        for (int r = 0; r < 8; r++) {
-            printf("\n");
-            for (int c = 0; c < 8; c++) {
-                char bitShift = 8 * r + c;
-                int64_t position = ((long) 1) << bitShift;
-                if (currBoard & position) printf("x ");
-                else printf(". ");
-            }
+    uint64_t currBoard = bbBoard[index];
+    for (int r = 0; r < 8; r++) {
+        printf("\n");
+        for (int c = 0; c < 8; c++) {
+            char bitShift = 8 * r + c;
+            uint64_t position = ((uint64_t) 1) << bitShift;
+            if (currBoard & position) printf("x ");
+            else printf(". ");
         }
     }
     printf("\n\n");
 }
 
-void renderAll(int64_t *bbBoard) {
+void renderAll(uint64_t *bbBoard) {
     for (int i = 0; i < 14; i++) {
         render(bbBoard, i);
     }
@@ -60,17 +73,17 @@ void renderAll(int64_t *bbBoard) {
 // Converts board_fen string into bitboard array (see EPieceType for indexes)
 // Uses Little-Endian Rank-File Mapping 
 // See https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping
-int64_t *fen2bit(char *board_fen) {
+uint64_t *fen2bit(char *board_fen) {
     REQUIRES(board_fen != NULL);
     
     // Create bit board
-    int64_t *bitBoard = calloc(num_pieceTypes, sizeof(int64_t));    // all 0's
+    uint64_t *bitBoard = calloc(num_pieceTypes, sizeof(uint64_t));    // all 0's
     ASSERT(bitBoard != NULL);  // Equivalent to xcalloc, which isn't working
 
     
     // Flip the fen board so that a1 is at top left – represented as string array
     char *token = strtok(board_fen, "/");
-    char **correct_fen = malloc(8 * sizeof(char*));
+    char* correct_fen[8];
     ASSERT(correct_fen != NULL);
     for (int i = 7; i >= 0; i--) {
         ASSERT(token != NULL);
@@ -146,7 +159,7 @@ int64_t *fen2bit(char *board_fen) {
             }
             ASSERT(0 <= bb_index && bb_index < 64);
             // printf("currPiece: %c, index: %d\n", curr, bb_index);
-            int64_t position = ((long) 1) << bb_index;
+            uint64_t position = ((uint64_t) 1) << bb_index;
             bitBoard[currPieceType] = bitBoard[currPieceType] | position;
             bitBoard[currPieceColor] = bitBoard[currPieceColor] | position;
             bb_index++;
@@ -154,9 +167,33 @@ int64_t *fen2bit(char *board_fen) {
         ASSERT(bb_index == 8*(i+1));
     }
 
-    free(correct_fen);
     ENSURES(bitBoard != NULL);
     return bitBoard;
+}
+
+// See Brian Kernighan's way (https://www.chessprogramming.org/Population_Count)
+int popCount(uint64_t x) {
+    // Alternative: lookup method
+      // Brian Kernighan's way: O(3) amortized average | lookup method: O(8)
+      //isolates by rank (good for pawn eval?)
+    int count = 0;
+    while (x) {
+        count++;
+        x &= x - 1; // reset LS1B
+    }
+    return count;
+}
+
+// This function evaluates material balance of position boards
+// Returns sum(weighting * (whiteCount - blackCount)) ie. +ve means white advantage
+int evaluateMaterial(uint64_t *bbBoard) {
+    int score = 0;
+    int values[] = {100, 300, 300, 500, 900, 20000};  // p, n, b, r, q, k
+    for (enum EPieceType i = 0; i < 6; i++) {
+        int count = popCount(bbBoard[i]) - popCount(bbBoard[i + 7]);
+        score += values[i] * count;
+    }
+    return score;
 }
 
 // This function suggests best move given a current board
@@ -167,12 +204,15 @@ char *AIMove(char *board_fen) {
     printf("Debugging mode is on!\n");
     #endif
 
+    // Change FEN string to bitboard
     char *token = strtok(board_fen, " ");
-    printf("We made it here\n");
-    int64_t *bbBoard_pos = fen2bit(token);
+    uint64_t *bbBoard_pos = fen2bit(token);
 
     renderAll(bbBoard_pos);
-
+    // Evaluate board
+    int score = evaluateMaterial(bbBoard_pos);
+    // NOTE: need to print negative score if is black playing, get in next token
+    printf("Score: %d \n", score);
 
     token = strtok(NULL, " ");
     printf("Remaining token: %s\n", token);  //printing each token
@@ -182,15 +222,19 @@ char *AIMove(char *board_fen) {
 }
 
 int main() {
-    char s[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    AIMove(s);
+    // char s[] = "rnb1kbnr/pppppppp/8/8/8/8/PPNNNPPP/RNBQ1BNR w KQkq - 0 1";
+    // AIMove(s);
+    unsigned long bruh = 0b100100110000;
+    printf("Least sig bit: %d\n", bitScanForward(bruh));
     return 0;
 }
+
 /*
 Process:    
 1. Convert board_fen into bitboard (board visualization) DONE
-2. Move generation
-3. Board position (ie. value of each piece)
+2. Board position (ie. value of each piece)
+  5. Positioning heuristics (adding on to board position)
+3. Move generation
 4. Minimax (then alpha beta pruning)
 
 Helper functions:
