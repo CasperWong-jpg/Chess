@@ -4,38 +4,8 @@
 #include <stdbool.h>
 
 #include "lib/contracts.h"
+#include "dataStructs.h"
 
-#define num_pieceTypes 14
-
-enum EPieceType {  // 0 - 13
-    whitePawns, whiteKnights, whiteBishops, whiteRooks, 
-    whiteQueens, whiteKing, whiteAll, 
-
-    blackPawns, blackKnights, blackBishops, blackRooks,
-    blackQueens, blackKing, blackAll
-};
-
-enum enumSquare {  // 0 - 63
-    a1, b1, c1, d1, e1, f1, g1, h1,
-    a2, b2, c2, d2, e2, f2, g2, h2,
-    a3, b3, c3, d3, e3, f3, g3, h3,
-    a4, b4, c4, d4, e4, f4, g4, h4,
-    a5, b5, c5, d5, e5, f5, g5, h5,
-    a6, b6, c6, d6, e6, f6, g6, h6,
-    a7, b7, c7, d7, e7, f7, g7, h7,
-    a8, b8, c8, d8, e8, f8, g8, h8
-};
-
-const int index64[64] = {
-    0, 47,  1, 56, 48, 27,  2, 60,
-    57, 49, 41, 37, 28, 16,  3, 61,
-    54, 58, 35, 52, 50, 42, 21, 44,
-    38, 32, 29, 23, 17, 11,  4, 62,
-    46, 55, 26, 59, 40, 36, 15, 53,
-    34, 51, 20, 43, 31, 22, 10, 45,
-    25, 39, 14, 33, 19, 30,  9, 24,
-    13, 18,  8, 12,  7,  6,  5, 63
-};
 
 // Cite: this function is from https://www.chessprogramming.org/BitScan
 // Finds index of the least significant 1 bit
@@ -43,20 +13,34 @@ int bitScanForward(uint64_t bb) {
     REQUIRES(bb != 0);
     const uint64_t debruijn64 = (0x03f79d71b4cb0a89);
     assert (bb != 0);
-    return index64[((bb ^ (bb-1)) * debruijn64) >> 58];
+    return LS1Bindex64[((bb ^ (bb-1)) * debruijn64) >> 58];
 }
 
-void render(uint64_t *bbBoard, int index) {
-    ASSERT(0 <= index && index < 14);
-    
-    char *s = "PNBRQKApnbrqka";
-    printf("Board representation for %c: \n", s[index]);
-    uint64_t currBoard = bbBoard[index];
+/**
+ * Flip a bitboard vertically about the centre ranks.
+ * Rank 1 is mapped to rank 8 and vice versa.
+ * @param x any bitboard
+ * @return bitboard x flipped vertically
+ * cite: https://www.chessprogramming.org/Flipping_Mirroring_and_Rotating#Vertical
+ */
+uint64_t flipVertical(uint64_t x) {
+   const uint64_t k1 = 0x00FF00FF00FF00FF;
+   const uint64_t k2 = 0x0000FFFF0000FFFF;
+   x = ((x >>  8) & k1) | ((x & k1) <<  8);
+   x = ((x >> 16) & k2) | ((x & k2) << 16);
+   x = ( x >> 32)       | ( x       << 32);
+   return x;
+}
+
+void render_single(int64_t currBoard) {
+    printf("Board representation: \n");
+    currBoard = flipVertical(currBoard);
+
     for (int r = 0; r < 8; r++) {
         printf("\n");
         for (int c = 0; c < 8; c++) {
             char bitShift = 8 * r + c;
-            uint64_t position = ((uint64_t) 1) << bitShift;
+            int64_t position = ((long) 1) << bitShift;
             if (currBoard & position) printf("x ");
             else printf(". ");
         }
@@ -64,10 +48,42 @@ void render(uint64_t *bbBoard, int index) {
     printf("\n\n");
 }
 
-void renderAll(uint64_t *bbBoard) {
-    for (int i = 0; i < 14; i++) {
-        render(bbBoard, i);
+// Prints board with a1 at bottom left and h8 at top right
+void render_all(uint64_t *BBoard) {
+    printf("Board representation: \n");
+    char *s = "PNBRQKApnbrqka";  // Used to index into and print pieces
+
+    // Initialize a string board that combines all bitboard pieces
+    char boardArray[65];
+    for (int i = 0; i < 64; i++) boardArray[i] = '.';
+    boardArray[64] = '\0';
+
+    // Combine all bitboards into one string board
+    for (enum EPieceType index = whitePawns; index < blackAll; index++) {
+        if (index == whiteAll) continue;
+
+        // Board flipped so that a1 at bottom left
+        uint64_t currBoard = flipVertical(BBoard[index]);
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                int bitShift = 8 * r + c;
+                uint64_t position = ((uint64_t) 1) << bitShift;
+                if (currBoard & position) {
+                    ASSERT(boardArray[bitShift] == '.');  // Must be empty
+                    boardArray[bitShift] = s[index];
+                }
+            }
+        }
     }
+
+    // Print the board!
+    for (int r = 0; r < 8; r++) {
+        for (int c = 0; c < 8; c++) {
+            printf("%c ", boardArray[8*r + c]);
+        }
+        printf("\n");
+    }
+    printf("\n");
 }
 
 // Converts board_fen string into bitboard array (see EPieceType for indexes)
@@ -172,6 +188,7 @@ uint64_t *fen2bit(char *board_fen) {
 }
 
 // See Brian Kernighan's way (https://www.chessprogramming.org/Population_Count)
+// Return the number of pieces (1 bits) on the bitboard
 int popCount(uint64_t x) {
     // Alternative: lookup method
       // Brian Kernighan's way: O(3) amortized average | lookup method: O(8)
@@ -186,46 +203,80 @@ int popCount(uint64_t x) {
 
 // This function evaluates material balance of position boards
 // Returns sum(weighting * (whiteCount - blackCount)) ie. +ve means white advantage
-int evaluateMaterial(uint64_t *bbBoard) {
+int evaluateMaterial(uint64_t *BBoard) {
     int score = 0;
     int values[] = {100, 300, 300, 500, 900, 20000};  // p, n, b, r, q, k
     for (enum EPieceType i = 0; i < 6; i++) {
-        int count = popCount(bbBoard[i]) - popCount(bbBoard[i + 7]);
+        int count = popCount(BBoard[i]) - popCount(BBoard[i + 7]);
         score += values[i] * count;
     }
     return score;
 }
 
+/*
+Move generation algorithm:
+  - Generate all moves for a piece 
+    - Categorize by piece type: knight, king, pawn, sliding pieces 
+    - Represent move using a struct
+    - Return an array of these moves
+*/
+
+// Returns an array of possible moves given bitboard and color to move
+move *generateMoves_knight(uint64_t *BBoard, bool blackToMove) {
+    (void) BBoard; (void) blackToMove;
+    printf("Knight board: %d\n", whiteKnights + blackToMove * 7);
+    uint64_t knightBoard = BBoard[whiteKnights + blackToMove * 7];
+    int index = bitScanForward(knightBoard);
+    (void) index;
+    return NULL;
+}
+
+
 // This function suggests best move given a current board
 // Example input: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 // Example output: "e2e4"
 char *AIMove(char *board_fen) {
-    #ifdef DEBUG
+#ifdef DEBUG
     printf("Debugging mode is on!\n");
-    #endif
+#endif
 
     // Change FEN string to bitboard
-    char *token = strtok(board_fen, " ");
-    uint64_t *bbBoard_pos = fen2bit(token);
+    strtok(board_fen, " ");
+    char* token = malloc(sizeof(char)* (strlen(board_fen) + 1));
+    strcpy(token, board_fen);
 
-    renderAll(bbBoard_pos);
+    // Get other important parameters: color, castling, en passant
+    // See: https://www.chess.com/terms/fen-chess for turns
+    bool blackToMove = (strtok(NULL, " ")[0] == 'w');  // 1 = black; 0 = white
+    printf("Black to move: %d\n", blackToMove);
+
+    while (board_fen != NULL) {
+        board_fen = strtok(NULL, " ");
+        printf("Remaining token: %s\n", board_fen);  // printing each token
+        // TODO: extract these tokens!
+    }
+
+    // Generate knight moves
+    
+    uint64_t *BBoard_pos = fen2bit(token);
+    free(token);
+
+
+#ifdef DEBUG
+    render_all(BBoard_pos);
     // Evaluate board
-    int score = evaluateMaterial(bbBoard_pos);
+    int score = evaluateMaterial(BBoard_pos);
     // NOTE: need to print negative score if is black playing, get in next token
     printf("Score: %d \n", score);
+#endif
 
-    token = strtok(NULL, " ");
-    printf("Remaining token: %s\n", token);  //printing each token
-
-    free(bbBoard_pos);
+    free(BBoard_pos);
     return NULL;
 }
 
 int main() {
-    // char s[] = "rnb1kbnr/pppppppp/8/8/8/8/PPNNNPPP/RNBQ1BNR w KQkq - 0 1";
-    // AIMove(s);
-    unsigned long bruh = 0b100100110000;
-    printf("Least sig bit: %d\n", bitScanForward(bruh));
+    char s[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    AIMove(s);
     return 0;
 }
 
@@ -246,7 +297,7 @@ Helper functions:
 – renderall(bitboards) for debugging purposes MADE
 */
 
-// Test stuff
+// Test and redundant stuff
 char *greeting(char *name) {
     printf("Name received: %s \n", name);
     printf("String length: %lu \n", strlen(name));
@@ -256,4 +307,24 @@ char *greeting(char *name) {
     strcpy(res, str1);
     strcat(res, name);
     return res;
+}
+
+// mask knight attacks
+uint64_t mask_knight_attacks(uint64_t bb_pos)
+{
+    // attack bitboard
+    uint64_t attacks = 0;
+    
+    // generate knight
+    if ((bb_pos >> 17) & not_h_file) attacks |= (bb_pos >> 17);
+    if ((bb_pos >> 15) & not_a_file) attacks |= (bb_pos >> 15);
+    if ((bb_pos >> 10) & not_hg_file) attacks |= (bb_pos >> 10);
+    if ((bb_pos >> 6) & not_ab_file) attacks |= (bb_pos >> 6);
+    if ((bb_pos << 17) & not_a_file) attacks |= (bb_pos << 17);
+    if ((bb_pos << 15) & not_h_file) attacks |= (bb_pos << 15);
+    if ((bb_pos << 10) & not_ab_file) attacks |= (bb_pos << 10);
+    if ((bb_pos << 6) & not_hg_file) attacks |= (bb_pos << 6);
+    
+    // return attack map for knight on a given square
+    return attacks;
 }

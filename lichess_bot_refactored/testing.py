@@ -7,6 +7,7 @@ ChessEngine = CDLL(so_file)
 
 
 ChessEngine.AIMove(b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+print(ChessEngine.bitScanForward(16))
 
 """
 # NOTE: passing string input and outputs template

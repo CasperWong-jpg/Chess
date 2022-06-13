@@ -49,5 +49,5 @@ Documentation: https://docs.python.org/3/library/ctypes.html
 Simple guide: https://www.journaldev.com/31907/calling-c-functions-from-python
 - Don't forget to marshal data types (example here: https://realpython.com/python-bindings-overview/)
 
-Basically, run this command in terminal: " cc -fPIC -shared -o ChessEngine.so ChessEngine.c -Wall -Wextra -Werror -Wshadow -std=c99 -pedantic -g -fwrapv -DDEBUG "
-Without debugging (ie. Implementation ready!): " cc -fPIC -shared -o ChessEngine.so ChessEngine.c "
+Basically, run this command in terminal: " cc -fPIC -shared -o ChessEngine.so dataStructs.c ChessEngine.c -Wall -Wextra -Werror -Wshadow -std=c99 -pedantic -g -fwrapv -DDEBUG "
+Without debugging (ie. Implementation ready!): " cc -fPIC -shared -o ChessEngine.so dataStructs.c ChessEngine.c "
