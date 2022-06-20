@@ -1,15 +1,13 @@
+//
+// Created by Casper Wong on 6/19/22.
+//
+
+#ifndef CHESS_DATASTRUCTS_H
+#define CHESS_DATASTRUCTS_H
+
 #define num_pieceTypes 14
 
-#ifdef uint64_t
-typedef unsigned long long uint64_t;
-#endif
-
-#ifdef int64_t
-typedef long int64_t;
-#endif
-
-
-enum EPieceType {  // 0 - 13
+enum EPieceType {  // [0, 14)
     whitePawns, whiteKnights, whiteBishops, whiteRooks, 
     whiteQueens, whiteKing, whiteAll, 
 
@@ -17,7 +15,7 @@ enum EPieceType {  // 0 - 13
     blackQueens, blackKing, blackAll
 };
 
-enum enumSquare {  // 0 - 63
+enum enumSquare {  // [0, 64)
     a1, b1, c1, d1, e1, f1, g1, h1,
     a2, b2, c2, d2, e2, f2, g2, h2,
     a3, b3, c3, d3, e3, f3, g3, h3,
@@ -30,14 +28,14 @@ enum enumSquare {  // 0 - 63
 
 typedef struct move_info *move;
 
-// Takes a square index, and returns its' corresponding attack board.
-// NOTE: Also have the mask_knight_attacks function. Delete one of them.
-uint64_t mask_knight_attacks(uint64_t bb_pos);
-
-const int LS1Bindex64[64];
+/**
+ * Bit masks that determine whether pieces are in specific ranks / files
+ */
 uint64_t not_a_file;
 uint64_t not_h_file;
 uint64_t not_hg_file;
 uint64_t not_ab_file;
 
-const uint64_t knight_attack_lookup[64];
+const int LS1Bindex64[64];  // Used for efficient bit-scanning
+
+#endif //CHESS_DATASTRUCTS_H
