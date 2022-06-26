@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
 #include "lib/contracts.h"
 #include "dataStructs.h"
@@ -92,7 +91,7 @@ uint64_t *fen2bit(char *board_fen) {
 
     // Flip the fen board so that a1 is at top left – represented as string array
     char *token = strtok(board_fen, "/");
-    char* correct_fen[8];
+    char *correct_fen[8];
     ASSERT(correct_fen != NULL);
     for (int i = 7; i >= 0; i--) {
         ASSERT(token != NULL);
@@ -180,6 +179,57 @@ uint64_t *fen2bit(char *board_fen) {
     return bitBoard;
 }
 
+
+FEN extract_fen_tokens(char *fen_string) {
+    FEN tokens = malloc(sizeof(struct FEN_info));
+
+    // Get board_fen
+    // Store in temporary string and allocate after extracting tokens (strtok() weirdness)
+    fen_string = strtok(fen_string, " ");
+    char *board_fen = malloc(sizeof(char)* (strlen(fen_string) + 1));
+    ASSERT(board_fen != NULL);
+    strcpy(board_fen, fen_string);
+
+    // Get active color
+    fen_string = strtok(NULL, " ");
+    if (!strcmp(fen_string, "w")) tokens->whiteToMove = 1;
+    else tokens->whiteToMove = 0;
+
+    // Get castling rights
+    // TODO: Could store these as an array of enumSquares
+    fen_string = strtok(NULL, " ");
+    tokens->castling = malloc(5 * sizeof(char));  // At most 4 chars
+    ASSERT(board_fen != NULL);
+    strcmp(tokens->castling, fen_string);
+
+    // Get En Passant targets
+    // TODO: Could be a single enumSquare, since there's only 1 En Passant target
+    fen_string = strtok(NULL, " ");
+    tokens->enPassant = malloc(3 * sizeof(char));  // At most 2 chars
+    ASSERT(board_fen != NULL);
+    strcmp(tokens->enPassant, fen_string);
+
+    // Get halfmoves - draw occurs if 50 halfmoves occur with no piece capture or pawn movement
+    fen_string = strtok(NULL, " ");
+    tokens->halfMove = atoi(fen_string);  // At most 2 chars
+
+    // Get fullmoves - has no significance really
+    fen_string = strtok(NULL, " ");
+    tokens->fullMove = atoi(fen_string);  // At most 2 chars
+
+    ASSERT(fen_string == NULL);
+
+    tokens->BBoard = fen2bit(board_fen);
+    return tokens;
+}
+
+
+void free_tokens(FEN tokens) {
+    free(tokens->BBoard);
+    free(tokens->castling);
+    free(tokens->enPassant);
+    free(tokens);
+}
 
 char *greeting(char *name) {
     printf("Name received: %s \n", name);

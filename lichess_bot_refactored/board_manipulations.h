@@ -20,15 +20,7 @@ int bitScanForward(uint64_t bb);
  */
 int popCount(uint64_t bb);
 
-/**
- * Flip a bitboard vertically about the centre ranks.
- * Rank 1 is mapped to rank 8 and vice versa.
- * @param x any bitboard
- * @return bitboard x flipped vertically
- * cite: https://www.chessprogramming.org/Flipping_Mirroring_and_Rotating#Vertical
- */
-uint64_t flipVertical(uint64_t x);
-
+// TODO: Implement the following:
 bool make_move(uint64_t *BBoard, move m);
 
 #endif //CHESS_BOARD_MANIPULATIONS_H

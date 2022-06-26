@@ -21,12 +21,3 @@ int popCount(uint64_t bb) {
     }
     return count;
 }
-
-uint64_t flipVertical(uint64_t x) {
-    const uint64_t k1 = 0x00FF00FF00FF00FF;
-    const uint64_t k2 = 0x0000FFFF0000FFFF;
-    x = ((x >>  8) & k1) | ((x & k1) <<  8);
-    x = ((x >> 16) & k2) | ((x & k2) << 16);
-    x = ( x >> 32)       | ( x       << 32);
-    return x;
-}

@@ -1,11 +1,5 @@
 #include <stdint.h>
 
-struct move_info {
-    char move[2];    // origin and destination squares (0 - 63)
-    char side;    // side moving white = 0 (whitePawns) or black = 7 (blackPawns)
-    char piece;    // see enum EPieceType
-};
-
 uint64_t not_a_file = 18374403900871474942ULL;
 uint64_t not_h_file = 9187201950435737471ULL;
 uint64_t not_hg_file = 4557430888798830399ULL;

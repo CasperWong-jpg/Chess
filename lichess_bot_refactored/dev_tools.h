@@ -36,6 +36,22 @@ PYTHON AND LICHESS API TOOLS
  */
 uint64_t *fen2bit(char *board_fen);
 
+
+/**
+ * Gets all information from a FEN string, as specified here: https://www.chess.com/terms/fen-chess
+ * Initializes and stores all information in a FEN struct pointer
+ * @param fen_string
+ * @return FEN struct pointer (as declared in datastructs.h)
+ */
+FEN extract_fen_tokens(char *fen_string);
+
+
+/**
+ * Free FEN pointer and any pointers it contains
+ * @param tokens a FEN pointer (as declared in datastructs.h)
+ */
+void free_tokens(FEN tokens);
+
 /**
  * Tests if strings passed in from Python are successfully parsed
  * @param name A string - should be passed in by Python (ie. FEN string).
