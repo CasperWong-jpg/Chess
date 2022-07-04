@@ -1,9 +1,10 @@
 #include <stdint.h>
+#include <stdio.h>
 
-uint64_t not_a_file = 18374403900871474942ULL;
-uint64_t not_h_file = 9187201950435737471ULL;
-uint64_t not_hg_file = 4557430888798830399ULL;
-uint64_t not_ab_file = 18229723555195321596ULL;
+uint64_t not_a_file = 0xfefefefefefefefe;
+uint64_t not_ab_file = 0xfcfcfcfcfcfcfcfc;
+uint64_t not_h_file = 0x7f7f7f7f7f7f7f7f;
+uint64_t not_hg_file = 0x3f3f3f3f3f3f3f3f;
 
 const int LS1Bindex64[64] = {
     0, 47,  1, 56, 48, 27,  2, 60,

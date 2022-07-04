@@ -5,11 +5,11 @@
 #include <stdint.h>
 #include "dataStructs.h"
 #include "lib/contracts.h"
+#include <stdio.h>
 
-int bitScanForward(uint64_t bb) {
+enum enumSquare bitScanForward(uint64_t bb) {
     REQUIRES(bb != 0);
     const uint64_t debruijn64 = (0x03f79d71b4cb0a89);
-    assert (bb != 0);
     return LS1Bindex64[((bb ^ (bb-1)) * debruijn64) >> 58];
 }
 

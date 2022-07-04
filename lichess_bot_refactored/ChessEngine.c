@@ -28,13 +28,40 @@ int evaluateMaterial(uint64_t *BBoard, bool whiteToMove) {
 }
 
 
-// Returns an array of possible moves given bitboard and color to move
+uint64_t getKnightAttacks(uint64_t knights) {
+    uint64_t l1 = (knights >> 1) & not_h_file;
+    uint64_t l2 = (knights >> 2) & not_hg_file;
+    uint64_t r1 = (knights << 1) & not_a_file;
+    uint64_t r2 = (knights << 2) & not_ab_file;
+    uint64_t h1 = l1 | r1;
+    uint64_t h2 = l2 | r2;
+    return (h1<<16) | (h1>>16) | (h2<<8) | (h2>>8);
+}
+
+
+/**
+ *
+ * @param BBoard
+ * @param whiteToMove
+ * @return
+ */
 move *generateMoves_knight(uint64_t *BBoard, bool whiteToMove) {
-    (void) BBoard; (void) whiteToMove;
-    printf("Knight board: %d\n", whiteKnights + !whiteToMove * 7);
-    uint64_t knightBoard = BBoard[whiteKnights + !whiteToMove * 7];
-    int index = bitScanForward(knightBoard);
-    (void) index;
+    // Get knight board of correct color
+    uint64_t knightsBoard = BBoard[whiteKnights + !whiteToMove * 7];
+#ifdef DEBUG
+    printf("Knight board - ");
+    render_single(knightsBoard);
+#endif
+    /* For each knight:
+     * Generate a board of possible places to move
+     */
+    // Loop through each knight
+    while (knightsBoard) {
+        enum enumSquare knightPosition = bitScanForward(knightsBoard);
+        uint64_t knightAttacks = getKnightAttacks(1UL << knightPosition);
+        knightsBoard &= knightsBoard - 1;
+        render_single(knightAttacks);
+    }
     return NULL;
 }
 
@@ -44,8 +71,9 @@ move *generateMoves_knight(uint64_t *BBoard, bool whiteToMove) {
  * @param board_fen
  * @return move, a pointer to a move_info struct
  */
-void *AIMove(uint64_t *BBoard) {
-    return BBoard;
+void *AIMove(FEN tokens) {
+    generateMoves_knight(tokens->BBoard, tokens->whiteToMove);
+    return 0;
 }
 
 
@@ -69,6 +97,9 @@ int main() {
     int score = evaluateMaterial(tokens->BBoard, tokens->whiteToMove);
     printf("Score: %d \n", score);  // NOTE: need to print negative score if is black playing
 #endif
+
+    /// Do AI stuff here;
+    AIMove(tokens);
 
     // Free pointers
     free_tokens(tokens);

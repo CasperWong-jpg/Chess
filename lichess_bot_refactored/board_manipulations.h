@@ -11,7 +11,7 @@
  * @return Index [0, 64) of the least significant 1's bit
  * @cite: This function is from https://www.chessprogramming.org/BitScan
  */
-int bitScanForward(uint64_t bb);
+enum enumSquare bitScanForward(uint64_t bb);
 
 /**
  * @param bb A single bitboard
