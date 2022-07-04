@@ -11,6 +11,11 @@
 #define DEBUG = true;
 #endif
 
+
+/*****************************
+ * GENERIC AI AND MOVE HELPERS
+*****************************/
+
 /**
  * Evaluates material balance of position boards
  * @param BBoard
@@ -28,7 +33,17 @@ int evaluateMaterial(uint64_t *BBoard, bool whiteToMove) {
 }
 
 
-uint64_t getKnightAttacks(uint64_t knights) {
+/************************
+ * KNIGHT MOVE FUNCTIONS
+************************/
+
+/**
+ * Generates all *pseudo-legal* knight moves
+ * @param knights bitboard containing knight(s) positions
+ * @return bitboard containing the possible positions that knight(s) can move to
+ * @cite Multiple Knight Attacks: https://www.chessprogramming.org/Knight_Pattern
+ */
+uint64_t getKnightMoves(uint64_t knights) {
     uint64_t l1 = (knights >> 1) & not_h_file;
     uint64_t l2 = (knights >> 2) & not_hg_file;
     uint64_t r1 = (knights << 1) & not_a_file;
@@ -40,35 +55,65 @@ uint64_t getKnightAttacks(uint64_t knights) {
 
 
 /**
+ * Checks if a pseudo-legal knight move is legal or not.
  *
- * @param BBoard
- * @param whiteToMove
+ * todo: Think more about params to put in. Could just have the post-move bitboards?
+ * @param BBoard Pre-move bitboard
+ * @param preMove Position of knight prior to move
+ * @param postMove Position of knight after pseudolegal move
  * @return
  */
+bool isLegalKnightMove(uint64_t *BBoard, uint64_t preMove, uint64_t postMove) {
+    // todo: Knight is not a cannibal - check it isn't eating a piece of same color - generic helper func
+
+    // todo: Check it doesn't put King in danger - generic helper func
+      // Make the move, and check if king is attacked by anything
+    return true;
+}
+
+
+/**
+ * Generates all legal moves that knights can make
+ * @param BBoard
+ * @param whiteToMove
+ * @return An array of move_info pointers that contain all legal knight moves
+ */
 move *generateMoves_knight(uint64_t *BBoard, bool whiteToMove) {
-    // Get knight board of correct color
+    // Get knight board of color to move
     uint64_t knightsBoard = BBoard[whiteKnights + !whiteToMove * 7];
 #ifdef DEBUG
     printf("Knight board - ");
     render_single(knightsBoard);
 #endif
-    /* For each knight:
-     * Generate a board of possible places to move
-     */
-    // Loop through each knight
     while (knightsBoard) {
+        // For each knight, generate all pseudo-legal moves
         enum enumSquare knightPosition = bitScanForward(knightsBoard);
-        uint64_t knightAttacks = getKnightAttacks(1UL << knightPosition);
+        uint64_t knightMoves = getKnightMoves(1UL << knightPosition);
+#ifdef DEBUG
+        render_single(knightMoves);
+#endif
+        while (knightMoves) {
+            // For each knight move, check if legal
+            enum enumSquare knightMove = bitScanForward(knightMoves);
+            if (isLegalKnightMove(BBoard, 1UL << knightPosition, 1UL << knightMove)) {
+                // todo: Append to a moves list (might need linked-list structure and helper func)
+                printf("%d to %d is a valid move\n", knightPosition, knightMove);
+            }
+            knightMoves &= knightMoves - 1;
+        }
         knightsBoard &= knightsBoard - 1;
-        render_single(knightAttacks);
     }
     return NULL;
 }
 
 
+/**********************
+ * MAIN MOVE GENERATION
+**********************/
+
 /**
  * Given bitboards and metadata, calculates the best move using MiniMax algorithm
- * @param board_fen
+ * @param tokens ie. bitboards, whiteToMove, castling, other FEN info
  * @return move, a pointer to a move_info struct
  */
 void *AIMove(FEN tokens) {
