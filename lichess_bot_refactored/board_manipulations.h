@@ -9,10 +9,17 @@
  * Finds index of the first piece on bitboard
  * @param bb A single bitboard
  * @return Index [0, 64) of the least significant 1's bit
- * @cite: This function is from https://www.chessprogramming.org/BitScan
+ * @cite: This function is from https://www.chessprogramming.org/BitScan#De_Bruijn_Multiplication
  */
 enum enumSquare bitScanForward(uint64_t bb);
 
+/**
+ * Finds index of the last piece on bitboard
+ * @param bb A single bitboard
+ * @return Index [0, 64) of the most significant 1's bit
+ * @cite: This function is from https://www.chessprogramming.org/BitScan#De_Bruijn_Multiplication_2
+ */
+enum enumSquare bitScanReverse(uint64_t bb);
 
 /**
  * @param bb A single bitboard
@@ -28,10 +35,19 @@ int popCount(uint64_t bb);
  * @return bitboard with 1's for corresponding line
  * @cite https://www.chessprogramming.org/On_an_empty_Board#By_Calculation_3
  */
-int rankMask(char sq);  // horizontal
-uint64_t fileMask(char sq);  // vertical
-uint64_t diagonalMask(char sq);
-uint64_t antiDiagMask(char sq);
+uint64_t rankMask(enum enumSquare sq);  // horizontal
+uint64_t fileMask(enum enumSquare sq);  // vertical
+uint64_t diagonalMask(enum enumSquare sq);
+uint64_t antiDiagMask(enum enumSquare sq);
+
+uint64_t northRay(enum enumSquare sq);
+uint64_t southRay(enum enumSquare sq);
+uint64_t eastRay(enum enumSquare sq);
+uint64_t westRay(enum enumSquare sq);
+uint64_t northEastRay(enum enumSquare sq);
+uint64_t southWestRay(enum enumSquare sq);
+uint64_t northWestRay(enum enumSquare sq);
+uint64_t southEastRay(enum enumSquare sq);
 
 // TODO: Implement the following:
 bool make_move(uint64_t *BBoard, move m);

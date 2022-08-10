@@ -2,9 +2,11 @@
  * TODO:
  *  0. Learn how to use debugger (set up cmakefile and config)
  *  1. DONE! Create pseudo-legal move generation for all piece types
- *  2. Do pseudolegal checks within move generation? Pass in bitboards (then find empty bitboard)
- *  2.5. Refactor: each of the getMoves_**** can probably be condensed into one
+ *  2. DONE! Complete pseudo-legal checks for sliding pieces (ie. blocking) within move generation
+ *  2.5. Do pseudo-legal checks within move generation for non-sliding pieces
+ *  2.6. Refactor: each of the getMoves_**** can be condensed into one
  *       Use a list of struct to store what functions each piece uses and loop thru function pointers
+ *       Comment code :)
  *  3. Do legality checks
  */
 #include <stdio.h>
@@ -60,30 +62,40 @@ bool isPseudoLegalNonSlidingMove(uint64_t *BBoard, uint64_t postMove, bool white
 }
 
 
-/**
- * Checks if a generated sliding piece move is pseudo-legal or not.
- * @param BBoard Pre-move bitboard
- * @param preMove Position of sliding piece prior to move
- * @param postMove Position of sliding piece after generated move
- */
-bool isPseudoLegalSlidingMove(uint64_t *BBoard, uint64_t preMove, uint64_t postMove, bool whiteToMove) {
-    // Sliding pieces cannot pass through others, and are not cannibals!
-    return noFriendlyPieceAt(BBoard, postMove, whiteToMove);
-}
-
-
 /************************
  * BISHOP MOVE FUNCTIONS
 ************************/
 /**
- * Generates all (possibly illegal) bishop moves
+ * Generates all pseudo-legal bishop moves
  * @param bishop_index index of current bishop
  * @return bitboard containing the possible positions that bishop can move to
  * @cite https://www.chessprogramming.org/Sliding_Piece_Attacks
  */
-uint64_t generateBishopMoves(char bishop_index) {
-    uint64_t bishop = 1UL << bishop_index;
-    return bishop ^ (diagonalMask(bishop_index) | antiDiagMask(bishop_index));
+uint64_t generateBishopMoves(enum enumSquare bishop_index, uint64_t *BBoard, bool whiteToMove) {
+    // Get useful boards and initialize attacks board to return
+    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * 7];
+    uint64_t occupied = BBoard[whiteAll] | BBoard[blackAll];
+    uint64_t attacks = 0;
+    // Store functions to get four rays of piece in an array to loop through.
+    // Require functions to alternate between positive rays (even indices) and negative rays (odd indices)
+    uint64_t (*rays[4]) (enum enumSquare sq);
+    rays[0] = northEastRay; rays[1] = southWestRay; rays[2] = northWestRay; rays[3] = southEastRay;
+    for (int i = 0; i < 4; i++) {
+        // Get the square of first piece blocking ray
+        uint64_t (*ray)(enum enumSquare sq) = rays[i];
+        uint64_t attack = ray(bishop_index);
+        uint64_t blockers = attack & occupied;
+        enum enumSquare block_sq = 0;
+        if (blockers) {
+            // Create a ray from this blocker to xor with
+            if (i % 2) {block_sq = bitScanForward(blockers);}
+            else {block_sq = bitScanReverse(blockers);}
+            attack = attack ^ 1UL << block_sq ^ ray(block_sq);
+        }
+        attacks |= attack;
+    }
+    // Cannot take any friendly pieces
+    return attacks ^ (attacks & friendlyBoard);
 }
 
 
@@ -103,21 +115,19 @@ move *getMoves_bishop(uint64_t *BBoard, bool whiteToMove) {
     while (bishopsBoard) {
         // For each bishop, generate all pseudo-legal moves
         enum enumSquare bishopPosition = bitScanForward(bishopsBoard);
-        uint64_t bishopMoves = generateBishopMoves(bishopPosition);
+        uint64_t bishopMoves = generateBishopMoves(bishopPosition, BBoard, whiteToMove);
 #ifdef DEBUG
-        printf("Bishop moves - ");
+        printf("Bishop pseudo-legal moves - ");
         render_single(bishopMoves);
 #endif
         while (bishopMoves) {
             // For each bishop move, check if legal
             enum enumSquare bishopMove = bitScanForward(bishopMoves);
-            if (isPseudoLegalSlidingMove(BBoard, 1UL << bishopPosition, 1UL << bishopMove, whiteToMove)) {
-                printf("%d to %d is a pseudo-legal move\n", bishopPosition, bishopMove);
+            printf("%d to %d is a pseudo-legal move\n", bishopPosition, bishopMove);
 
-                // todo: Check it doesn't put King in danger - generic helper func
-                // Make the move, and check if king is attacked by anything.
-                // todo: Append to a moves list (might need linked-list structure and helper func)
-            }
+            // todo: Check it doesn't put King in danger - generic helper func
+            // Make the move, and check if king is attacked by anything.
+            // todo: Append to a moves list (might need linked-list structure and helper func)
             bishopMoves &= bishopMoves - 1;
         }
         bishopsBoard &= bishopsBoard - 1;
@@ -130,15 +140,31 @@ move *getMoves_bishop(uint64_t *BBoard, bool whiteToMove) {
  * ROOK MOVE FUNCTIONS
 ************************/
 /**
- * Generates all (possibly illegal) rook moves
+ * Generates all pseudo-legal rook moves
  * @param rook_index index of current rook
  * @return bitboard containing the possible positions that rook can move to
  */
-uint64_t generateRookMoves(char rook_index) {
-    uint64_t rook = 1UL << rook_index;
-    return rook ^ (rankMask(rook_index) | fileMask(rook_index));
+uint64_t generateRookMoves(enum enumSquare rook_index, uint64_t *BBoard, bool whiteToMove) {
+    // See generateBishopMoves for code explanation
+    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * 7];
+    uint64_t occupied = BBoard[whiteAll] | BBoard[blackAll];
+    uint64_t attacks = 0;
+    uint64_t (*rays[4]) (enum enumSquare sq);
+    rays[0] = northRay; rays[1] = southRay; rays[2] = eastRay; rays[3] = westRay;
+    for (int i = 0; i < 4; i++) {
+        uint64_t (*ray)(enum enumSquare sq) = rays[i];
+        uint64_t attack = ray(rook_index);
+        uint64_t blockers = attack & occupied;
+        enum enumSquare block_sq;
+        if (blockers) {
+            if (i % 2) {block_sq = bitScanForward(blockers);}
+            else {block_sq = bitScanReverse(blockers);}
+            attack = attack ^ 1UL << block_sq ^ ray(block_sq);
+        }
+        attacks |= attack;
+    }
+    return attacks ^ (attacks & friendlyBoard);
 }
-
 
 /**
  * Generates all legal moves that rooks can make
@@ -156,21 +182,19 @@ move *getMoves_rook(uint64_t *BBoard, bool whiteToMove) {
     while (rooksBoard) {
         // For each rook, generate all pseudo-legal moves
         enum enumSquare rookPosition = bitScanForward(rooksBoard);
-        uint64_t rookMoves = generateRookMoves(rookPosition);
+        uint64_t rookMoves = generateRookMoves(rookPosition, BBoard, whiteToMove);
 #ifdef DEBUG
-        printf("Rook moves - ");
+        printf("Rook pseudo-legal moves - ");
         render_single(rookMoves);
 #endif
         while (rookMoves) {
             // For each rook move, check if legal
             enum enumSquare rookMove = bitScanForward(rookMoves);
-            if (isPseudoLegalSlidingMove(BBoard, 1UL << rookPosition, 1UL << rookMove, whiteToMove)) {
-                printf("%d to %d is a pseudo-legal move\n", rookPosition, rookMove);
+            printf("%d to %d is a pseudo-legal move\n", rookPosition, rookMove);
 
-                // todo: Check it doesn't put King in danger - generic helper func
-                // Make the move, and check if king is attacked by anything.
-                // todo: Append to a moves list (might need linked-list structure and helper func)
-            }
+            // todo: Check it doesn't put King in danger - generic helper func
+            // Make the move, and check if king is attacked by anything.
+            // todo: Append to a moves list (might need linked-list structure and helper func)
             rookMoves &= rookMoves - 1;
         }
         rooksBoard &= rooksBoard - 1;
@@ -183,13 +207,13 @@ move *getMoves_rook(uint64_t *BBoard, bool whiteToMove) {
  * QUEEN MOVE FUNCTIONS
 ************************/
 /**
- * Generates all (possibly illegal) queen moves
+ * Generates all pseudo-legal queen moves
  * @param queen_index index of current queen
  * @return bitboard containing the possible positions that queen can move to
  */
-uint64_t generateQueenMoves(char queen_index) {
-    uint64_t queen = 1UL << queen_index;
-    return queen ^ (generateRookMoves(queen_index) | generateBishopMoves(queen_index));
+uint64_t generateQueenMoves(enum enumSquare queen_index, uint64_t *BBoard, bool whiteToMove) {
+    return generateRookMoves(queen_index, BBoard, whiteToMove) |
+            generateBishopMoves(queen_index, BBoard, whiteToMove);
 }
 
 
@@ -209,21 +233,19 @@ move *getMoves_queen(uint64_t *BBoard, bool whiteToMove) {
     while (queensBoard) {
         // For each queen, generate all pseudo-legal moves
         enum enumSquare queenPosition = bitScanForward(queensBoard);
-        uint64_t queenMoves = generateQueenMoves(queenPosition);
+        uint64_t queenMoves = generateQueenMoves(queenPosition, BBoard, whiteToMove);
 #ifdef DEBUG
-        printf("Queen moves - ");
+        printf("Queen pseudo-legal moves - ");
         render_single(queenMoves);
 #endif
         while (queenMoves) {
             // For each queen move, check if legal
             enum enumSquare queenMove = bitScanForward(queenMoves);
-            if (isPseudoLegalSlidingMove(BBoard, 1UL << queenPosition, 1UL << queenMove, whiteToMove)) {
-                printf("%d to %d is a pseudo-legal move\n", queenPosition, queenMove);
+            printf("%d to %d is a pseudo-legal move\n", queenPosition, queenMove);
 
-                // todo: Check it doesn't put King in danger - generic helper func
-                // Make the move, and check if king is attacked by anything.
-                // todo: Append to a moves list (might need linked-list structure and helper func)
-            }
+            // todo: Check it doesn't put King in danger - generic helper func
+            // Make the move, and check if king is attacked by anything.
+            // todo: Append to a moves list (might need linked-list structure and helper func)
             queenMoves &= queenMoves - 1;
         }
         queensBoard &= queensBoard - 1;
@@ -241,7 +263,7 @@ move *getMoves_queen(uint64_t *BBoard, bool whiteToMove) {
  * @return bitboard containing the possible positions that knight can move to
  * @cite Multiple Knight Attacks: https://www.chessprogramming.org/Knight_Pattern
  */
-uint64_t generateKnightMoves(char knight_index) {
+uint64_t generateKnightMoves(enum enumSquare knight_index) {
     uint64_t knight = 1UL << knight_index;
     uint64_t l1 = (knight >> 1) & not_h_file;
     uint64_t l2 = (knight >> 2) & not_hg_file;
@@ -301,7 +323,7 @@ move *getMoves_knight(uint64_t *BBoard, bool whiteToMove) {
  * @return bitboard containing the possible positions that king can move to
  * @cite Multiple King Attacks: https://www.chessprogramming.org/King_Pattern
  */
-uint64_t generateKingMoves(char king_index) {
+uint64_t generateKingMoves(enum enumSquare king_index) {
     // todo: Castling in another function?
     uint64_t king = 1UL << king_index;
     uint64_t l1 = (king >> 1) & not_h_file;
@@ -387,7 +409,7 @@ uint64_t bAttackTargets(uint64_t bpawns, uint64_t enemy) {
  * @cite https://www.chessprogramming.org/Pawn_Pushes_(Bitboards)
  * @cite https://www.chessprogramming.org/Pawn_Attacks_(Bitboards)
  */
-uint64_t generateWhitePawnMoves(uint64_t *BBoard, char pawn_index) {
+uint64_t generateWhitePawnMoves(uint64_t *BBoard, enum enumSquare pawn_index) {
     uint64_t pawn = 1UL << pawn_index;
     uint64_t empty = ~(BBoard[whiteAll] | BBoard[blackAll]);
     uint64_t pushSet = wSinglePushTargets(pawn, empty) | wDoublePushTargets(pawn, empty);
@@ -396,7 +418,7 @@ uint64_t generateWhitePawnMoves(uint64_t *BBoard, char pawn_index) {
 }
 
 
-uint64_t generateBlackPawnMoves(uint64_t *BBoard, char pawn_index) {
+uint64_t generateBlackPawnMoves(uint64_t *BBoard, enum enumSquare pawn_index) {
     uint64_t pawn = 1UL << pawn_index;
     uint64_t empty = !(BBoard[whiteAll] | BBoard[blackAll]);
     uint64_t pushSet = bSinglePushTargets(pawn, empty) | bDoublePushTargets(pawn, empty);
@@ -452,7 +474,7 @@ move *getMoves_pawn(uint64_t *BBoard, bool whiteToMove) {
  * @return move, a pointer to a move_info struct
  */
 void *AIMove(FEN tokens) {
-    getMoves_pawn(tokens->BBoard, tokens->whiteToMove);
+    getMoves_queen(tokens->BBoard, tokens->whiteToMove);
     return 0;
 }
 
@@ -467,7 +489,7 @@ int main() {
 #endif
     // Input FEN String
     char *board_fen = malloc(sizeof(char) * 100);
-    strcpy(board_fen, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");  /// Input a FEN_string here!
+    strcpy(board_fen, "rnbqkbnr/pppppppp/8/8/8/8/PP3PPP/RN1Q3R w KQkq - 0 1");  /// Input a FEN_string here!
 
     // Extract info from FEN string
     FEN tokens = extract_fen_tokens(board_fen);
