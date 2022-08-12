@@ -3,7 +3,8 @@
  *  0. Learn how to use debugger (set up cmakefile and config)
  *  1. DONE! Create pseudo-legal move generation for all piece types
  *  2. DONE! Complete pseudo-legal checks for sliding pieces (ie. blocking) within move generation
- *  2.5. Do pseudo-legal checks within move generation for non-sliding pieces
+ *  2.5. DONE! Do pseudo-legal checks within move generation for non-sliding pieces
+ *  2.55. Castling and en passant?
  *  2.6. Refactor: each of the getMoves_**** can be condensed into one
  *       Use a list of struct to store what functions each piece uses and loop thru function pointers
  *       Comment code :)
@@ -19,14 +20,13 @@
 #include "board_manipulations.h"
 
 #ifndef DEBUG
-#define DEBUG = true;
+#define DEBUG  // Use #undef to disable debugging behaviour
 #endif
 
 
 /*****************************
  * GENERIC AI AND MOVE HELPERS
 *****************************/
-
 /**
  * Evaluates material balance of position boards
  * @return Sum(weighting * (whiteCount - blackCount)) ie. +ve means white advantage
@@ -44,21 +44,13 @@ int evaluateMaterial(uint64_t *BBoard, bool whiteToMove) {
 
 
 /**
- * Checks that there is no friendly piece at specified square
+ * Check whether king of specified color is put in check. Used for legality checking.
+ * @param BBoard
+ * @param checkWhite
+ * @return
  */
-bool noFriendlyPieceAt(uint64_t *BBoard, uint64_t square, bool whiteToMove) {
-    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * 7];
-    return !(friendlyBoard & square);
-}
-
-
-/**
- * Checks if a generated knight move is pseudo-legal or not.
- * @param BBoard Pre-move bitboard
- * @param postMove Position of knight after generated move
- */
-bool isPseudoLegalNonSlidingMove(uint64_t *BBoard, uint64_t postMove, bool whiteToMove) {
-    return noFriendlyPieceAt(BBoard, postMove, whiteToMove);
+bool isInCheck(uint64_t *BBoard, bool checkWhite) {
+    return false;
 }
 
 
@@ -123,7 +115,6 @@ move *getMoves_bishop(uint64_t *BBoard, bool whiteToMove) {
         while (bishopMoves) {
             // For each bishop move, check if legal
             enum enumSquare bishopMove = bitScanForward(bishopMoves);
-            printf("%d to %d is a pseudo-legal move\n", bishopPosition, bishopMove);
 
             // todo: Check it doesn't put King in danger - generic helper func
             // Make the move, and check if king is attacked by anything.
@@ -190,7 +181,6 @@ move *getMoves_rook(uint64_t *BBoard, bool whiteToMove) {
         while (rookMoves) {
             // For each rook move, check if legal
             enum enumSquare rookMove = bitScanForward(rookMoves);
-            printf("%d to %d is a pseudo-legal move\n", rookPosition, rookMove);
 
             // todo: Check it doesn't put King in danger - generic helper func
             // Make the move, and check if king is attacked by anything.
@@ -241,7 +231,6 @@ move *getMoves_queen(uint64_t *BBoard, bool whiteToMove) {
         while (queenMoves) {
             // For each queen move, check if legal
             enum enumSquare queenMove = bitScanForward(queenMoves);
-            printf("%d to %d is a pseudo-legal move\n", queenPosition, queenMove);
 
             // todo: Check it doesn't put King in danger - generic helper func
             // Make the move, and check if king is attacked by anything.
@@ -258,12 +247,13 @@ move *getMoves_queen(uint64_t *BBoard, bool whiteToMove) {
  * KNIGHT MOVE FUNCTIONS
 ************************/
 /**
- * Generates all (possibly illegal) knight moves
+ * Generates all pseudo-legal knight moves
  * @param knight bitboard containing knight position
  * @return bitboard containing the possible positions that knight can move to
  * @cite Multiple Knight Attacks: https://www.chessprogramming.org/Knight_Pattern
  */
-uint64_t generateKnightMoves(enum enumSquare knight_index) {
+uint64_t generateKnightMoves(enum enumSquare knight_index, uint64_t *BBoard, bool whiteToMove) {
+    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * 7];
     uint64_t knight = 1UL << knight_index;
     uint64_t l1 = (knight >> 1) & not_h_file;
     uint64_t l2 = (knight >> 2) & not_hg_file;
@@ -271,7 +261,8 @@ uint64_t generateKnightMoves(enum enumSquare knight_index) {
     uint64_t r2 = (knight << 2) & not_ab_file;
     uint64_t h1 = l1 | r1;
     uint64_t h2 = l2 | r2;
-    return (h1<<16) | (h1>>16) | (h2<<8) | (h2>>8);
+    uint64_t moveSet = (h1<<16) | (h1>>16) | (h2<<8) | (h2>>8);
+    return moveSet ^ (moveSet & friendlyBoard);
 }
 
 
@@ -291,7 +282,7 @@ move *getMoves_knight(uint64_t *BBoard, bool whiteToMove) {
     while (knightsBoard) {
         // For each knight, generate all pseudo-legal moves
         enum enumSquare knightPosition = bitScanForward(knightsBoard);
-        uint64_t knightMoves = generateKnightMoves(knightPosition);
+        uint64_t knightMoves = generateKnightMoves(knightPosition, BBoard, whiteToMove);
 #ifdef DEBUG
         printf("Knight moves - ");
         render_single(knightMoves);
@@ -299,13 +290,10 @@ move *getMoves_knight(uint64_t *BBoard, bool whiteToMove) {
         while (knightMoves) {
             // For each knight move, check if legal
             enum enumSquare knightMove = bitScanForward(knightMoves);
-            if (isPseudoLegalNonSlidingMove(BBoard, 1UL << knightMove, whiteToMove)) {
-                printf("%d to %d is a pseudo-legal move\n", knightPosition, knightMove);
 
-                // todo: Check it doesn't put King in danger - generic helper func
-                  // Make the move, and check if king is attacked by anything.
-                // todo: Append to a moves list (might need linked-list structure and helper func)
-            }
+            // todo: Check it doesn't put King in danger - generic helper func
+              // Make the move, and check if king is attacked by anything.
+            // todo: Append to a moves list (might need linked-list structure and helper func)
             knightMoves &= knightMoves - 1;
         }
         knightsBoard &= knightsBoard - 1;
@@ -323,13 +311,15 @@ move *getMoves_knight(uint64_t *BBoard, bool whiteToMove) {
  * @return bitboard containing the possible positions that king can move to
  * @cite Multiple King Attacks: https://www.chessprogramming.org/King_Pattern
  */
-uint64_t generateKingMoves(enum enumSquare king_index) {
+uint64_t generateKingMoves(enum enumSquare king_index, uint64_t *BBoard, bool whiteToMove) {
     // todo: Castling in another function?
+    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * 7];
     uint64_t king = 1UL << king_index;
     uint64_t l1 = (king >> 1) & not_h_file;
     uint64_t r1 = (king << 1) & not_a_file;
     uint64_t h1 = king | l1 | r1;
-    return king ^ (h1 | (h1<<8) | (h1>>8));
+    uint64_t moveSet = king ^ (h1 | (h1<<8) | (h1>>8));
+    return moveSet ^ (moveSet & friendlyBoard);
 }
 
 
@@ -348,7 +338,7 @@ move *getMoves_king(uint64_t *BBoard, bool whiteToMove) {
 #endif
     // For the king, generate all pseudo-legal moves
     enum enumSquare kingPosition = bitScanForward(kingsBoard);
-    uint64_t kingMoves = generateKingMoves(kingPosition);
+    uint64_t kingMoves = generateKingMoves(kingPosition, BBoard, whiteToMove);
 #ifdef DEBUG
     printf("King moves - ");
     render_single(kingMoves);
@@ -356,13 +346,10 @@ move *getMoves_king(uint64_t *BBoard, bool whiteToMove) {
     while (kingMoves) {
         // For each king move, check if legal
         enum enumSquare kingMove = bitScanForward(kingMoves);
-        if (isPseudoLegalNonSlidingMove(BBoard, 1UL << kingMove, whiteToMove)) {
-            printf("%d to %d is a pseudo-legal move\n", kingPosition, kingMove);
 
-            // todo: Check it doesn't put King in danger - generic helper func
-            // Make the move, and check if king is attacked by anything.
-            // todo: Append to a moves list (might need linked-list structure and helper func)
-        }
+        // todo: Check it doesn't put King in danger - generic helper func
+        // Make the move, and check if king is attacked by anything.
+        // todo: Append to a moves list (might need linked-list structure and helper func)
         kingMoves &= kingMoves - 1;
     }
     return NULL;
@@ -386,7 +373,6 @@ uint64_t wAttackTargets(uint64_t wpawns, uint64_t enemy) {
     return ((wpawns << 7 & not_h_file) | (wpawns << 9 & not_a_file)) & enemy;
 }
 
-
 uint64_t bSinglePushTargets(uint64_t bpawns, uint64_t empty) {
     return (bpawns >> 8) & empty;
 }
@@ -403,7 +389,7 @@ uint64_t bAttackTargets(uint64_t bpawns, uint64_t enemy) {
 
 
 /**
- * Generates all (possibly illegal) white pawn moves
+ * Generates all pseudo-legal white pawn moves
  * @param pawn bitboard containing pawn position
  * @return bitboard containing the possible positions that pawn can move to
  * @cite https://www.chessprogramming.org/Pawn_Pushes_(Bitboards)
@@ -417,10 +403,12 @@ uint64_t generateWhitePawnMoves(uint64_t *BBoard, enum enumSquare pawn_index) {
     return pushSet | attackSet;
 }
 
-
+/**
+ * Generates all pseudo-legal black pawn moves
+ */
 uint64_t generateBlackPawnMoves(uint64_t *BBoard, enum enumSquare pawn_index) {
     uint64_t pawn = 1UL << pawn_index;
-    uint64_t empty = !(BBoard[whiteAll] | BBoard[blackAll]);
+    uint64_t empty = ~(BBoard[whiteAll] | BBoard[blackAll]);
     uint64_t pushSet = bSinglePushTargets(pawn, empty) | bDoublePushTargets(pawn, empty);
     uint64_t attackSet = bAttackTargets(pawn, BBoard[whiteAll]);
     return pushSet | attackSet;
@@ -453,7 +441,6 @@ move *getMoves_pawn(uint64_t *BBoard, bool whiteToMove) {
         while (pawnMoves) {
             // For each pawn move, check if legal
             enum enumSquare pawnMove = bitScanForward(pawnMoves);
-            printf("%d to %d is a pseudo-legal move\n", pawnPosition, pawnMove);
 
             // todo: Check it doesn't put King in danger - generic helper func
             // Make the move, and check if king is attacked by anything.
@@ -474,7 +461,7 @@ move *getMoves_pawn(uint64_t *BBoard, bool whiteToMove) {
  * @return move, a pointer to a move_info struct
  */
 void *AIMove(FEN tokens) {
-    getMoves_queen(tokens->BBoard, tokens->whiteToMove);
+    getMoves_pawn(tokens->BBoard, tokens->whiteToMove);
     return 0;
 }
 
@@ -489,7 +476,7 @@ int main() {
 #endif
     // Input FEN String
     char *board_fen = malloc(sizeof(char) * 100);
-    strcpy(board_fen, "rnbqkbnr/pppppppp/8/8/8/8/PP3PPP/RN1Q3R w KQkq - 0 1");  /// Input a FEN_string here!
+    strcpy(board_fen, "rnbqkbnr/pppppppp/8/8/8/8/PP3PPP/RN1QK2R b KQkq - 0 1");  /// Input a FEN_string here!
 
     // Extract info from FEN string
     FEN tokens = extract_fen_tokens(board_fen);
