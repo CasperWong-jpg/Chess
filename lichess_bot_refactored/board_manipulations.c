@@ -37,7 +37,7 @@ int popCount(uint64_t bb) {
 }
 
 
-uint64_t rankMask(enum enumSquare sq) {return 0xff << (sq & 56);}
+uint64_t rankMask(enum enumSquare sq) {return 0xffUL << (sq & 56);}
 
 uint64_t fileMask(enum enumSquare sq) {return 0x0101010101010101 << (sq & 7);}
 

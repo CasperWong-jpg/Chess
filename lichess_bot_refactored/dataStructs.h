@@ -9,6 +9,9 @@
 
 #define num_pieceTypes 14
 
+/**
+ * Useful board enums
+ */
 enum EPieceType {  // [0, 14)
     whitePawns, whiteKnights, whiteBishops, whiteRooks, 
     whiteQueens, whiteKing, whiteAll, 
@@ -28,6 +31,9 @@ enum enumSquare {  // [0, 64)
     a8, b8, c8, d8, e8, f8, g8, h8,
 };  // Ordered in same format as a FEN bitboard
 
+/**
+ * Move info
+ */
 struct move_info {
     enum enumSquare from;   // index of origin square
     enum enumSquare to;     // index of destination square
@@ -35,7 +41,10 @@ struct move_info {
 };
 typedef struct move_info *move;
 
-struct FEN_info{
+/**
+ * FEN info
+ */
+struct FEN_info {
     uint64_t *BBoard;
     bool whiteToMove;
     char *castling;
@@ -54,5 +63,22 @@ uint64_t not_h_file;
 uint64_t not_hg_file;
 
 const int LS1Bindex64[64];  // Used for efficient bit-scanning
+
+
+/**
+ * Generic move generation structs
+ */
+struct generic_get_move_struct {
+    enum EPieceType pieceType;  // Piece type (ie. pawn, knight, bishop) enum in white
+    union {
+        uint64_t (*normal) (enum enumSquare, uint64_t *, bool);
+        uint64_t (*additional) (enum enumSquare, uint64_t *, bool, uint64_t);
+    } move_gen_func_ptr;  // Move generation function for specific piece type
+    bool initialized;  // Check if additional_data is required and initialized for this piece type
+    uint64_t additional_data;  // If initialized, this stores the board for castling / en-passant
+    struct generic_get_move_struct *next;
+};
+
+typedef struct generic_get_move_struct *generic_get_move;
 
 #endif //CHESS_DATASTRUCTS_H
