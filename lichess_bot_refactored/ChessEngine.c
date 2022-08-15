@@ -249,76 +249,75 @@ uint64_t generatePawnMoves(enum enumSquare pawn_index, uint64_t *BBoard, bool wh
  * MAIN MOVE GENERATION
 **********************/
 /**
- * Initialize struct that iterates through all piece types and the corresponding functions they use in move generation
- * @return A pointer to generic_get_move_struct struct
+ * Initialize a linked list, where data holds piece types and corresponding functions used in move generation
+ * @return Head of a generic linked list, which contains generic_get_move pointers as data
  */
-generic_get_move get_pieces_struct(void *castling, void *enPassant) {
-    generic_get_move head = malloc(sizeof(struct generic_get_move_struct));
+void *get_pieces_struct(void *castling, void *enPassant) {
+    node head = malloc(sizeof(node));
 
     // Initialize for pawns
-    generic_get_move piece_list = head;
+    node piece_node = head;
+    generic_get_move piece_list = malloc(sizeof(struct generic_get_move_struct));
     ASSERT(piece_list != NULL);
     piece_list->pieceType = whitePawns;
     piece_list->move_gen_func_ptr.additional = &generatePawnMoves;
     piece_list->initialized = true;
     piece_list->additional_data = enPassant;
-    piece_list->next = malloc(sizeof(struct generic_get_move_struct));
+    piece_node->data = (void *) piece_list;
+    piece_node->next = malloc(sizeof(node));
 
     // Initialize for knights
-    piece_list = piece_list->next;
+    piece_node = piece_node->next;
+    piece_list = malloc(sizeof(struct generic_get_move_struct));
     ASSERT(piece_list != NULL);
     piece_list->pieceType = whiteKnights;
     piece_list->move_gen_func_ptr.normal = &generateKnightMoves;
     piece_list->initialized = false;
-    piece_list->next = malloc(sizeof(struct generic_get_move_struct));
+    piece_node->data = (void *) piece_list;
+    piece_node->next = malloc(sizeof(node));
 
     // Initialize for bishops
-    piece_list = piece_list->next;
+    piece_node = piece_node->next;
+    piece_list = malloc(sizeof(struct generic_get_move_struct));
     ASSERT(piece_list != NULL);
     piece_list->pieceType = whiteBishops;
     piece_list->move_gen_func_ptr.normal = &generateBishopMoves;
     piece_list->initialized = false;
-    piece_list->next = malloc(sizeof(struct generic_get_move_struct));
+    piece_node->data = (void *) piece_list;
+    piece_node->next = malloc(sizeof(node));
 
     // Initialize for rooks
-    piece_list = piece_list->next;
+    piece_node = piece_node->next;
+    piece_list = malloc(sizeof(struct generic_get_move_struct));
     ASSERT(piece_list != NULL);
     piece_list->pieceType = whiteRooks;
     piece_list->move_gen_func_ptr.normal = &generateRookMoves;
     piece_list->initialized = false;
-    piece_list->next = malloc(sizeof(struct generic_get_move_struct));
+    piece_node->data = (void *) piece_list;
+    piece_node->next = malloc(sizeof(node));
 
     // Initialize for queens
-    piece_list = piece_list->next;
+    piece_node = piece_node->next;
+    piece_list = malloc(sizeof(struct generic_get_move_struct));
     ASSERT(piece_list != NULL);
     piece_list->pieceType = whiteQueens;
     piece_list->move_gen_func_ptr.normal = &generateQueenMoves;
     piece_list->initialized = false;
-    piece_list->next = malloc(sizeof(struct generic_get_move_struct));
+    piece_node->data = (void *) piece_list;
+    piece_node->next = malloc(sizeof(node));
 
     // Initialize for king
-    piece_list = piece_list->next;
+    piece_node = piece_node->next;
+    piece_list = malloc(sizeof(struct generic_get_move_struct));
     ASSERT(piece_list != NULL);
     piece_list->pieceType = whiteKing;
     piece_list->move_gen_func_ptr.additional = &generateKingMoves;
     piece_list->initialized = true;
     piece_list->additional_data = castling;
-    piece_list->next = NULL;
+    piece_node->data = (void *) piece_list;
+    piece_node->next = NULL;
 
     return head;
-}
-
-/**
- * Frees a linked list. This can be moved to dev_tools and made generic (using void *).
- * @param head Head of a linked list
- */
-void free_pieces_struct (generic_get_move head) {
-    generic_get_move curr = head;
-    while (curr != NULL) {
-        generic_get_move next = curr->next;
-        free(curr);
-        curr = next;
-    }
 }
 
 
@@ -331,9 +330,10 @@ void free_pieces_struct (generic_get_move head) {
  * @return An linked list of move_info pointers that contain all legal knight moves
  */
 move *getMoves(uint64_t *BBoard, bool whiteToMove, void *castling, void *enPassant) {
-    generic_get_move piece_list = get_pieces_struct(castling, enPassant);
+    node piece_list = get_pieces_struct(castling, enPassant);
 
-    for (generic_get_move piece = piece_list; piece != NULL; piece = piece->next) {
+    for (node piece_node = piece_list; piece_node != NULL; piece_node = piece_node->next) {
+        generic_get_move piece = (generic_get_move) piece_node->data;
         uint64_t pieceBoard = BBoard[piece->pieceType + !whiteToMove * 7];
 #ifdef DEBUG
         printf("Piece board - ");
@@ -366,7 +366,7 @@ move *getMoves(uint64_t *BBoard, bool whiteToMove, void *castling, void *enPassa
         }
         // Append moves here
     }
-    free_pieces_struct(piece_list)
+    free_linked_list(piece_list);
     return NULL;
 }
 

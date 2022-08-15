@@ -52,6 +52,14 @@ FEN extract_fen_tokens(char *fen_string);
  */
 void free_tokens(FEN tokens);
 
+
+/**
+ * Frees a linked list. See dataStructs.h for node data struct.
+ * @param curr Head of a linked list
+ */
+void free_linked_list (node curr)
+
+
 /**
  * Tests if strings passed in from Python are successfully parsed
  * @param name A string - should be passed in by Python (ie. FEN string).

@@ -231,6 +231,17 @@ void free_tokens(FEN tokens) {
     free(tokens);
 }
 
+
+void free_linked_list (node curr) {
+    while (curr != NULL) {
+        node next = curr->next;
+        free(curr->data);
+        free(curr);
+        curr = next;
+    }
+}
+
+
 char *greeting(char *name) {
     printf("Name received: %s \n", name);
     printf("String length: %lu \n", strlen(name));

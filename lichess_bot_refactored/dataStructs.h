@@ -9,6 +9,18 @@
 
 #define num_pieceTypes 14
 
+/*
+ * Generic linked list node
+ */
+struct Node
+{
+    // Any data type can be stored in this node
+    void *data;
+    struct Node *next;
+};
+typedef struct Node *node;
+
+
 /**
  * Useful board enums
  */
@@ -31,6 +43,7 @@ enum enumSquare {  // [0, 64)
     a8, b8, c8, d8, e8, f8, g8, h8,
 };  // Ordered in same format as a FEN bitboard
 
+
 /**
  * Move info
  */
@@ -40,6 +53,7 @@ struct move_info {
     enum EPieceType piece;  // bitboard to manipulate
 };
 typedef struct move_info *move;
+
 
 /**
  * FEN info
@@ -53,6 +67,7 @@ struct FEN_info {
     int fullMove;
 };
 typedef struct FEN_info *FEN;
+
 
 /**
  * Bit masks that determine whether pieces are in specific ranks / files
@@ -76,7 +91,6 @@ struct generic_get_move_struct {
     } move_gen_func_ptr;  // Move generation function for specific piece type
     bool initialized;  // Check if additional_data is required and initialized for this piece type
     uint64_t additional_data;  // If initialized, this stores the board for castling / en-passant
-    struct generic_get_move_struct *next;
 };
 
 typedef struct generic_get_move_struct *generic_get_move;
