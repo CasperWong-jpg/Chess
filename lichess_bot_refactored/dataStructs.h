@@ -61,8 +61,8 @@ typedef struct move_info *move;
 struct FEN_info {
     uint64_t *BBoard;
     bool whiteToMove;
-    char *castling;
-    char *enPassant;
+    uint64_t castling;
+    uint64_t enPassant;
     int halfMove;
     int fullMove;
 };

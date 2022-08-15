@@ -105,7 +105,7 @@ uint64_t *fen2bit(char *board_fen) {
         char *str = correct_fen[i];
 
         for (int c = 0; str[c] != '\0'; c++) {
-            char curr = (int) str[c];
+            char curr = (char) str[c];
             if ('0' < curr && curr <= '8') {    // char is number – empty square
                 bb_index = bb_index + (curr - '0');
                 continue;
@@ -198,16 +198,32 @@ FEN extract_fen_tokens(char *fen_string) {
     // Get castling rights
     // TODO: Could store these as an array of enumSquares
     fen_string = strtok(NULL, " ");
-    tokens->castling = malloc(5 * sizeof(char));  // At most 4 chars
-    ASSERT(board_fen != NULL);
-    strcmp(tokens->castling, fen_string);
+    tokens->castling = 0;
+    for (char c = 0; fen_string[c] != '\0'; c++) {
+        ASSERT(c < 4);
+        switch (fen_string[c]) {
+            case '-':  // No castling options
+                break;
+            case 'K':  // King side white
+                tokens->castling += 1UL << g1;
+                break;
+            case 'Q':  // Queen side white
+                tokens->castling += 1UL << c1;
+                break;
+            case 'k':  // King side black
+                tokens->castling += 1UL << g8;
+                break;
+            case 'q':  // Queen side black
+                tokens->castling += 1UL << c8;
+                break;
+        }
+    }
 
     // Get En Passant targets
-    // TODO: Could be a single enumSquare, since there's only 1 En Passant target
     fen_string = strtok(NULL, " ");
-    tokens->enPassant = malloc(3 * sizeof(char));  // At most 2 chars
-    ASSERT(board_fen != NULL);
-    strcmp(tokens->enPassant, fen_string);
+    tokens->enPassant = 0;
+    if (fen_string[0] == '-') {;}  // No en-passant targets. Do nothing!
+    else {;}  // Todo: There are en-passant targets (ie. e3). Need to convert this
 
     // Get halfmoves - draw occurs if 50 halfmoves occur with no piece capture or pawn movement
     fen_string = strtok(NULL, " ");
@@ -226,8 +242,6 @@ FEN extract_fen_tokens(char *fen_string) {
 
 void free_tokens(FEN tokens) {
     free(tokens->BBoard);
-    free(tokens->castling);
-    free(tokens->enPassant);
     free(tokens);
 }
 

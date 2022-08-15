@@ -57,7 +57,7 @@ void free_tokens(FEN tokens);
  * Frees a linked list. See dataStructs.h for node data struct.
  * @param curr Head of a linked list
  */
-void free_linked_list (node curr)
+void free_linked_list (node curr);
 
 
 /**

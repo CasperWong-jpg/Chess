@@ -4,9 +4,9 @@
  *  1. DONE! Create pseudo-legal move generation for all piece types
  *  2. DONE! Complete pseudo-legal checks for sliding pieces (ie. blocking) within move generation
  *  2.5. DONE! Do pseudo-legal checks within move generation for non-sliding pieces
- *  3. Refactor: each of the getMoves_**** can be condensed into one
- *       DONE: Use a list of struct to store what functions each piece uses and loop thru function pointers
- *       DONE: King and Pawn take additional arguments
+ *  3. DONE! Refactor: each of the getMoves_**** can be condensed into one
+ *       Use a list of struct to store what functions each piece uses and loop thru function pointers
+ *       King and Pawn take additional arguments
  *       Comment code :)
  *  4. Castling (take tokens as arguments) + en passant?
  *  5. Do legality checks (tryMove & isInCheck)
@@ -42,17 +42,6 @@ int evaluateMaterial(uint64_t *BBoard, bool whiteToMove) {
     }
     if (!whiteToMove) score *= -1;
     return score;
-}
-
-
-/**
- * Check whether king of specified color is put in check. Used for legality checking.
- * @param BBoard
- * @param checkWhite
- * @return
- */
-bool isInCheck(uint64_t *BBoard, bool checkWhite) {
-    return false;
 }
 
 
@@ -245,6 +234,35 @@ uint64_t generatePawnMoves(enum enumSquare pawn_index, uint64_t *BBoard, bool wh
 }
 
 
+/*******************
+ * LEGALITY CHECKING
+*******************/
+/**
+ * Check whether king of specified color is put in check. Used for legality checking.
+ * @param BBoard
+ * @param checkWhite
+ * @return
+ */
+bool isInCheck(uint64_t *BBoard, bool checkWhite) {
+    /**
+     This would benefit from being able to generate moves for multiple pieces at once
+     We have this functionality within the generate____Moves, just need to wrap them
+     Can just call on all the generate____Moves for now.
+
+     Pseudocode:
+     - Get king board for friendly color, and all piece type boards for enemy color
+     - Loop through each enemy color board, and generate moves (could use get_pieces_struct)
+       - Intersect with king board. Return true if bitboard not empty
+     - After all loops, return false!
+    */
+    return false;
+}
+
+bool tryMove(uint64_t *BBoard, bool checkWhite) {
+    // Call makeMove, then isInCheck
+    return false;
+}
+
 /**********************
  * MAIN MOVE GENERATION
 **********************/
@@ -252,7 +270,7 @@ uint64_t generatePawnMoves(enum enumSquare pawn_index, uint64_t *BBoard, bool wh
  * Initialize a linked list, where data holds piece types and corresponding functions used in move generation
  * @return Head of a generic linked list, which contains generic_get_move pointers as data
  */
-void *get_pieces_struct(void *castling, void *enPassant) {
+void *get_pieces_struct(uint64_t castling, uint64_t enPassant) {
     node head = malloc(sizeof(node));
 
     // Initialize for pawns
@@ -329,7 +347,7 @@ void *get_pieces_struct(void *castling, void *enPassant) {
  * @param enPassant Bitboard containing all en-passant squares (all colors included)
  * @return An linked list of move_info pointers that contain all legal knight moves
  */
-move *getMoves(uint64_t *BBoard, bool whiteToMove, void *castling, void *enPassant) {
+move *getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t enPassant) {
     node piece_list = get_pieces_struct(castling, enPassant);
 
     for (node piece_node = piece_list; piece_node != NULL; piece_node = piece_node->next) {
