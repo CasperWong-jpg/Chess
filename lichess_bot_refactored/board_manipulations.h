@@ -5,6 +5,10 @@
 #ifndef CHESS_BOARD_MANIPULATIONS_H
 #define CHESS_BOARD_MANIPULATIONS_H
 
+
+/**********************
+ * BASIC BIT OPERATIONS
+**********************/
 /**
  * Finds index of the first piece on bitboard
  * @param bb A single bitboard
@@ -29,6 +33,9 @@ enum enumSquare bitScanReverse(uint64_t bb);
 int popCount(uint64_t bb);
 
 
+/********
+ * MASKS
+********/
 /**
  * Generates sliding piece line attack masks given index of a piece
  * @param sq index of
@@ -49,7 +56,25 @@ uint64_t southWestRay(enum enumSquare sq);
 uint64_t northWestRay(enum enumSquare sq);
 uint64_t southEastRay(enum enumSquare sq);
 
-// TODO: Implement the following:
-bool make_move(uint64_t *BBoard, move m);
+
+/*********************
+ * BOARD MANIPULATIONS
+*********************/
+/**
+ * Make the move specified by m on the board BBoard
+ * @param BBoard
+ * @param m
+ * @return Nothing. BBoard will be changed
+ */
+void make_move(uint64_t *BBoard, move m);
+
+
+/**
+ * Unmake move specified by m on the board BBoard
+ * @param BBoard
+ * @param m
+ * @return Nothing. BBoard will be changed
+ */
+void unmake_move(uint64_t *BBoard, move m);
 
 #endif //CHESS_BOARD_MANIPULATIONS_H

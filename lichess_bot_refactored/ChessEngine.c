@@ -8,7 +8,7 @@
  *       Use a list of struct to store what functions each piece uses and loop thru function pointers
  *       King and Pawn take additional arguments
  *       Comment code :)
- *  4. Castling (take tokens as arguments) + en passant?
+ *  4. Optional: Castling (take tokens as arguments) + en passant?
  *  5. Do legality checks (tryMove & isInCheck)
  *  6. MiniMax!!
  */
@@ -26,9 +26,9 @@
 #endif
 
 
-/*****************************
- * GENERIC AI AND MOVE HELPERS
-*****************************/
+/********************
+ * GENERIC AI HELPERS
+*********************/
 /**
  * Evaluates material balance of position boards
  * @return Sum(weighting * (whiteCount - blackCount)) ie. +ve means white advantage
@@ -234,43 +234,14 @@ uint64_t generatePawnMoves(enum enumSquare pawn_index, uint64_t *BBoard, bool wh
 }
 
 
-/*******************
- * LEGALITY CHECKING
-*******************/
-/**
- * Check whether king of specified color is put in check. Used for legality checking.
- * @param BBoard
- * @param checkWhite
- * @return
- */
-bool isInCheck(uint64_t *BBoard, bool checkWhite) {
-    /**
-     This would benefit from being able to generate moves for multiple pieces at once
-     We have this functionality within the generate____Moves, just need to wrap them
-     Can just call on all the generate____Moves for now.
-
-     Pseudocode:
-     - Get king board for friendly color, and all piece type boards for enemy color
-     - Loop through each enemy color board, and generate moves (could use get_pieces_struct)
-       - Intersect with king board. Return true if bitboard not empty
-     - After all loops, return false!
-    */
-    return false;
-}
-
-bool tryMove(uint64_t *BBoard, bool checkWhite) {
-    // Call makeMove, then isInCheck
-    return false;
-}
-
 /**********************
- * MAIN MOVE GENERATION
+ * MAIN MOVE HELPERS
 **********************/
 /**
  * Initialize a linked list, where data holds piece types and corresponding functions used in move generation
  * @return Head of a generic linked list, which contains generic_get_move pointers as data
  */
-void *get_pieces_struct(uint64_t castling, uint64_t enPassant) {
+node get_pieces_struct(uint64_t castling, uint64_t enPassant) {
     node head = malloc(sizeof(node));
 
     // Initialize for pawns
@@ -339,6 +310,79 @@ void *get_pieces_struct(uint64_t castling, uint64_t enPassant) {
 }
 
 
+/*******************
+ * LEGALITY CHECKING
+*******************/
+/**
+ * Check whether king of specified color is put in check. Used for legality checking.
+ * @param BBoard
+ * @param checkWhite
+ * @return
+ */
+bool isInCheck(uint64_t *BBoard, bool checkWhite) {
+    /**
+     This would benefit from being able to generate moves for multiple pieces at once
+     We have this functionality within the generate____Moves, just need to wrap them
+     Can just call on all the generate____Moves for now.
+
+     Pseudocode:
+     - Get king board for friendly color, and all piece type boards for enemy color
+     - Loop through each enemy color board, and generate moves (could use get_pieces_struct)
+       - Intersect with king board. Return true if bitboard not empty
+     - After all loops, return false!
+    */
+    // Get king board for friendly color, and all piece types
+    uint64_t kingBoard = BBoard[whiteKing + !checkWhite * 7];
+    node piece_list = get_pieces_struct(0, 0);  // Castling and en-passant irrelevant
+
+    for (node piece_node = piece_list; piece_node != NULL; piece_node = piece_node->next) {
+        // Loop through enemy piece types / boards
+        generic_get_move piece = (generic_get_move) piece_node->data;
+        uint64_t pieceBoard = BBoard[piece->pieceType + checkWhite * 7];
+        while (pieceBoard) {
+            // For each piece, generate all pseudo-legal moves
+            enum enumSquare piece_index = bitScanForward(pieceBoard);
+            uint64_t pieceMoves;
+            if (piece->initialized) {
+                pieceMoves = (piece->move_gen_func_ptr.additional)(
+                        piece_index, BBoard, !checkWhite, piece->additional_data
+                );
+            } else {pieceMoves = (piece->move_gen_func_ptr.normal)(piece_index, BBoard, !checkWhite);}
+            if (pieceMoves & kingBoard) {return true;}  // Friendly king within enemy moves list, in check!
+            pieceBoard &= pieceBoard - 1;
+        }
+    }
+    return false;  // Not in moves list of any enemy piece, is safe :)
+}
+
+
+/**
+ * Make move to see if it is legal, then unmake move
+ * @param BBoard
+ * @param whiteToMove
+ * @param m
+ * @return
+ */
+bool checkMoveLegal(uint64_t *BBoard, bool checkWhite, move m) {
+    // Make move and see if it is in check
+    uint64_t from = m->from;
+    uint64_t to = m->to;
+    make_move(BBoard, m);
+    bool inCheck = isInCheck(BBoard, checkWhite);
+    // Reverse the move
+    m->from = to;
+    m->to = from;
+    make_move(BBoard, m);
+    // Store the move back
+    m->from = from;
+    m->to = to;
+    return !inCheck;
+}
+
+
+/**********************
+ * MAIN MOVE GENERATION
+**********************/
 /**
  * Generates all legal moves for player to move
  * @param BBoard
@@ -347,8 +391,10 @@ void *get_pieces_struct(uint64_t castling, uint64_t enPassant) {
  * @param enPassant Bitboard containing all en-passant squares (all colors included)
  * @return An linked list of move_info pointers that contain all legal knight moves
  */
-move *getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t enPassant) {
+node getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t enPassant) {
     node piece_list = get_pieces_struct(castling, enPassant);
+    node move_head = NULL;
+    node move_list = move_head;
 
     for (node piece_node = piece_list; piece_node != NULL; piece_node = piece_node->next) {
         generic_get_move piece = (generic_get_move) piece_node->data;
@@ -358,7 +404,7 @@ move *getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t e
         render_single(pieceBoard);
 #endif
         while (pieceBoard) {
-            // For each knight, generate all pseudo-legal moves
+            // For each piece, generate all pseudo-legal moves
             enum enumSquare piece_index = bitScanForward(pieceBoard);
             uint64_t pieceMoves;
             if (piece->initialized) {
@@ -373,19 +419,33 @@ move *getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t e
 #endif
             while (pieceMoves) {
                 // For each move, check if legal
-                enum enumSquare pieceMove = bitScanForward(pieceMoves);
-
-                // todo: Check it doesn't put King in danger - generic helper func
-                // Make the move, and check if king is attacked by anything.
-                // todo: Append to a moves list (might need linked-list structure and helper func)
+                enum enumSquare piece_move = bitScanForward(pieceMoves);
+                move m = malloc(sizeof(struct move_info));
+                m->from = piece_index;
+                m->to = piece_move;
+                m->piece = piece->pieceType;
+                if (checkMoveLegal(BBoard, whiteToMove, m)) {
+                    if (move_list == NULL) {
+                        move_list = malloc(sizeof(struct Node));
+                    }
+                    else {
+                        move_list->next = malloc(sizeof(struct Node));
+                        move_list = move_list->next;
+                    }
+                    move_list->data = (void *) m;
+                    move_list->next = NULL;
+                }
+                else {
+                    printf("%d to %d is not a legal move\n", m->from, m->to);
+                    free(m);
+                }  // Illegal move
                 pieceMoves &= pieceMoves - 1;
             }
             pieceBoard &= pieceBoard - 1;
         }
-        // Append moves here
     }
     free_linked_list(piece_list);
-    return NULL;
+    return move_head;
 }
 
 
@@ -410,7 +470,7 @@ int main() {
 #endif
     // Input FEN String
     char *board_fen = malloc(sizeof(char) * 100);
-    strcpy(board_fen, "rnbqkbnr/pppppppp/8/8/8/8/PP3PPP/RNBQK2R w KQkq - 0 1");  /// Input a FEN_string here!
+    strcpy(board_fen, "rnbqkbnr/ppp1pppp/8/8/8/8/PP3PPP/RNBQK2R w KQkq - 0 1");  /// Input a FEN_string here!
 
     // Extract info from FEN string
     FEN tokens = extract_fen_tokens(board_fen);
@@ -422,9 +482,10 @@ int main() {
 #endif
 
     /// Do AI stuff here;
-    AIMove(tokens);
+    node move_list = AIMove(tokens);
 
     // Free pointers
+    free_linked_list(move_list);
     free_tokens(tokens);
     free(board_fen);
     return 0;
