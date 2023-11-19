@@ -1,5 +1,4 @@
 /**
- * TODO:
  *  0. Learn how to use debugger (set up cmakefile and config)
  *  1. DONE! Create pseudo-legal move generation for all piece types
  *  2. DONE! Complete pseudo-legal checks for sliding pieces (ie. blocking) within move generation
@@ -8,13 +7,15 @@
  *       Use a list of struct to store what functions each piece uses and loop thru function pointers
  *       King and Pawn take additional arguments
  *       Comment code :)
- *  4. Optional: Castling (take tokens as arguments) + en passant?
- *  5. Do legality checks (tryMove & isInCheck)
- *  6. MiniMax!!
+ *  4. TODO: (Optional) Castling (take tokens as arguments) + en passant
+ *  5. DONE! Do legality checks (tryMove & isInCheck)
+ *  6. Done! MiniMax!!
+ *  7. TODO: Alpha-beta pruning!
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #include "lib/contracts.h"
 #include "dataStructs.h"
@@ -22,22 +23,23 @@
 #include "board_manipulations.h"
 
 #ifndef DEBUG
-#define DEBUG  // Use #undef to disable debugging behaviour
+#define DEBUG (0)  // Debug is off by default
 #endif
 
+#define DEPTH (4)  // Number of moves to think ahead
 
 /********************
  * GENERIC AI HELPERS
 *********************/
 /**
  * Evaluates material balance of position boards
- * @return Sum(weighting * (whiteCount - blackCount)) ie. +ve means white advantage
+ * @return Sum(weighting * (playingColorCount - waitingColorCount)) ie. +ve means advantage for playing team
  */
 int evaluateMaterial(uint64_t *BBoard, bool whiteToMove) {
     int score = 0;
     int values[] = {100, 300, 300, 500, 900, 20000};  // p, n, b, r, q, k
-    for (enum EPieceType i = 0; i < 6; i++) {
-        int count = popCount(BBoard[i]) - popCount(BBoard[i + 7]);
+    for (enum EPieceType i = 0; i < whiteAll; i++) {
+        int count = popCount(BBoard[i]) - popCount(BBoard[i + colorOffset]);
         score += values[i] * count;
     }
     if (!whiteToMove) score *= -1;
@@ -51,7 +53,7 @@ int evaluateMaterial(uint64_t *BBoard, bool whiteToMove) {
 uint64_t generateSlidingMoves(enum enumSquare index, uint64_t *BBoard, bool whiteToMove,
                               uint64_t (*rays[4]) (enum enumSquare)) {
     // Get useful boards and initialize attacks board to return
-    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * 7];
+    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * colorOffset];
     uint64_t occupied = BBoard[whiteAll] | BBoard[blackAll];
     uint64_t attacks = 0;
     for (int i = 0; i < 4; i++) {
@@ -133,7 +135,7 @@ uint64_t generateQueenMoves(enum enumSquare queen_index, uint64_t *BBoard, bool 
  * @cite Multiple Knight Attacks: https://www.chessprogramming.org/Knight_Pattern
  */
 uint64_t generateKnightMoves(enum enumSquare knight_index, uint64_t *BBoard, bool whiteToMove) {
-    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * 7];
+    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * colorOffset];
     uint64_t knight = 1UL << knight_index;
     uint64_t l1 = (knight >> 1) & not_h_file;
     uint64_t l2 = (knight >> 2) & not_hg_file;
@@ -156,8 +158,9 @@ uint64_t generateKnightMoves(enum enumSquare knight_index, uint64_t *BBoard, boo
  * @cite Multiple King Attacks: https://www.chessprogramming.org/King_Pattern
  */
 uint64_t generateKingMoves(enum enumSquare king_index, uint64_t *BBoard, bool whiteToMove, uint64_t castling) {
+    (void) castling;
     // todo: Castling in another function?
-    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * 7];
+    uint64_t friendlyBoard = BBoard[whiteAll + !whiteToMove * colorOffset];
     uint64_t king = 1UL << king_index;
     uint64_t l1 = (king >> 1) & not_h_file;
     uint64_t r1 = (king << 1) & not_a_file;
@@ -229,6 +232,7 @@ uint64_t generateBlackPawnMoves(enum enumSquare pawn_index, uint64_t *BBoard) {
  * Wrapper function that calls the pawn move generation function for corresponding color
  */
 uint64_t generatePawnMoves(enum enumSquare pawn_index, uint64_t *BBoard, bool whiteToMove, uint64_t enPassant) {
+    (void) enPassant;
     if (whiteToMove) {return generateWhitePawnMoves(pawn_index, BBoard);}
     else {return generateBlackPawnMoves(pawn_index, BBoard);}
 }
@@ -238,14 +242,15 @@ uint64_t generatePawnMoves(enum enumSquare pawn_index, uint64_t *BBoard, bool wh
  * MAIN MOVE HELPERS
 **********************/
 /**
- * Initialize a linked list, where data holds piece types and corresponding functions used in move generation
+ * Initialize a linked list, where data contains: piece types + corresponding functions used in move generation
  * @return Head of a generic linked list, which contains generic_get_move pointers as data
  */
 node get_pieces_struct(uint64_t castling, uint64_t enPassant) {
+    /// Wrap below into a for loop, and change it so that pieceType can be black or white (then we can delete offsets)
     node head = malloc(sizeof(node));
+    node piece_node = head;
 
     // Initialize for pawns
-    node piece_node = head;
     generic_get_move piece_list = malloc(sizeof(struct generic_get_move_struct));
     ASSERT(piece_list != NULL);
     piece_list->pieceType = whitePawns;
@@ -319,12 +324,8 @@ node get_pieces_struct(uint64_t castling, uint64_t enPassant) {
  * @param checkWhite
  * @return
  */
-bool isInCheck(uint64_t *BBoard, bool checkWhite) {
+bool isInCheck(uint64_t *BBoard, bool whiteMoved) {
     /**
-     This would benefit from being able to generate moves for multiple pieces at once
-     We have this functionality within the generate____Moves, just need to wrap them
-     Can just call on all the generate____Moves for now.
-
      Pseudocode:
      - Get king board for friendly color, and all piece type boards for enemy color
      - Loop through each enemy color board, and generate moves (could use get_pieces_struct)
@@ -332,50 +333,56 @@ bool isInCheck(uint64_t *BBoard, bool checkWhite) {
      - After all loops, return false!
     */
     // Get king board for friendly color, and all piece types
-    uint64_t kingBoard = BBoard[whiteKing + !checkWhite * 7];
+    uint64_t kingBoard = BBoard[whiteKing + !whiteMoved * colorOffset];
     node piece_list = get_pieces_struct(0, 0);  // Castling and en-passant irrelevant
 
     for (node piece_node = piece_list; piece_node != NULL; piece_node = piece_node->next) {
-        // Loop through enemy piece types / boards
+        // Loop through enemy piece types & boards
         generic_get_move piece = (generic_get_move) piece_node->data;
-        uint64_t pieceBoard = BBoard[piece->pieceType + checkWhite * 7];
+        uint64_t pieceBoard = BBoard[piece->pieceType + whiteMoved * colorOffset];
+
         while (pieceBoard) {
             // For each piece, generate all pseudo-legal moves
             enum enumSquare piece_index = bitScanForward(pieceBoard);
             uint64_t pieceMoves;
             if (piece->initialized) {
                 pieceMoves = (piece->move_gen_func_ptr.additional)(
-                        piece_index, BBoard, !checkWhite, piece->additional_data
+                        piece_index, BBoard, !whiteMoved, piece->additional_data
                 );
-            } else {pieceMoves = (piece->move_gen_func_ptr.normal)(piece_index, BBoard, !checkWhite);}
-            if (pieceMoves & kingBoard) {return true;}  // Friendly king within enemy moves list, in check!
+            } else {
+                pieceMoves = (piece->move_gen_func_ptr.normal)(piece_index, BBoard, !whiteMoved);
+            }
+            if (pieceMoves & kingBoard) {  // Friendly king within enemy moves list, in check!
+                return true;
+            }
             pieceBoard &= pieceBoard - 1;
         }
     }
-    return false;  // Not in moves list of any enemy piece, is safe :)
+    return false;  // King is not in moves list of any enemy piece, so is safe :)
 }
 
 
 /**
- * Make move to see if it is legal, then unmake move
+ * Make move to see if it is legal
  * @param BBoard
  * @param whiteToMove
  * @param m
  * @return
  */
-bool checkMoveLegal(uint64_t *BBoard, bool checkWhite, move m) {
-    // Make move and see if it is in check
-    uint64_t from = m->from;
-    uint64_t to = m->to;
-    make_move(BBoard, m);
-    bool inCheck = isInCheck(BBoard, checkWhite);
-    // Reverse the move
-    m->from = to;
-    m->to = from;
-    make_move(BBoard, m);
-    // Store the move back
-    m->from = from;
-    m->to = to;
+bool checkMoveLegal(uint64_t *BBoard, bool whiteToMove, move m) {
+    // Make move on a copy of BBoard, since we want to unmake the move
+    uint64_t *tmpBBoard = malloc(numPieceTypes * sizeof(uint64_t));
+    memcpy(tmpBBoard, BBoard, numPieceTypes * sizeof(uint64_t));
+
+    for (enum EPieceType i = 0; i < numPieceTypes; i++) {
+        ASSERT(BBoard[i] == tmpBBoard[i]);
+    }
+
+    make_move(tmpBBoard, m);
+    bool inCheck = isInCheck(tmpBBoard, whiteToMove);
+
+    // Free the temporary bitboard
+    free(tmpBBoard);
     return !inCheck;
 }
 
@@ -398,22 +405,24 @@ node getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t en
 
     for (node piece_node = piece_list; piece_node != NULL; piece_node = piece_node->next) {
         generic_get_move piece = (generic_get_move) piece_node->data;
-        uint64_t pieceBoard = BBoard[piece->pieceType + !whiteToMove * 7];
-#ifdef DEBUG
-        printf("Piece board - ");
+        uint64_t pieceBoard = BBoard[piece->pieceType + !whiteToMove * colorOffset];
+#if DEBUG
+        printf("Piece board for piece type %d - ", piece->pieceType);
         render_single(pieceBoard);
 #endif
         while (pieceBoard) {
             // For each piece, generate all pseudo-legal moves
             enum enumSquare piece_index = bitScanForward(pieceBoard);
             uint64_t pieceMoves;
-            if (piece->initialized) {
+            if (piece->initialized) {  // Kings & pawns have additional status (castling & en passant) to keep track of
                 pieceMoves = (piece->move_gen_func_ptr.additional)(
                         piece_index, BBoard, whiteToMove, piece->additional_data
                 );
             }
-            else {pieceMoves = (piece->move_gen_func_ptr.normal)(piece_index, BBoard, whiteToMove);}
-#ifdef DEBUG
+            else {  // Normal pieces have normal function signature without additional uint64_t argument
+                pieceMoves = (piece->move_gen_func_ptr.normal)(piece_index, BBoard, whiteToMove);
+            }
+#if DEBUG
             printf("Piece moves - ");
             render_single(pieceMoves);
 #endif
@@ -423,10 +432,12 @@ node getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t en
                 move m = malloc(sizeof(struct move_info));
                 m->from = piece_index;
                 m->to = piece_move;
-                m->piece = piece->pieceType;
+                m->piece = piece->pieceType + !whiteToMove * colorOffset;
                 if (checkMoveLegal(BBoard, whiteToMove, m)) {
+                    // Legal move: add to list of possible moves
                     if (move_list == NULL) {
                         move_list = malloc(sizeof(struct Node));
+                        move_head = move_list;
                     }
                     else {
                         move_list->next = malloc(sizeof(struct Node));
@@ -436,9 +447,12 @@ node getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t en
                     move_list->next = NULL;
                 }
                 else {
+                    // Illegal move: disregard it
+#if DEBUG
                     printf("%d to %d is not a legal move\n", m->from, m->to);
+#endif
                     free(m);
-                }  // Illegal move
+                }
                 pieceMoves &= pieceMoves - 1;
             }
             pieceBoard &= pieceBoard - 1;
@@ -450,13 +464,85 @@ node getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t en
 
 
 /**
+ *
+ * @param depth
+ * @return
+ * @cite https://www.chessprogramming.org/Negamax
+ */
+int negaMax(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t enPassant, uint32_t depth) {
+    if (depth == 0) {
+        int score = evaluateMaterial(BBoard, whiteToMove);
+        return score;
+    }
+
+    node move_list = getMoves(BBoard, whiteToMove, castling, enPassant);
+    int bestScore = INT_MIN;
+    uint64_t *tmpBBoard = malloc(numPieceTypes * sizeof(uint64_t));
+    for (node move_node = move_list; move_node != NULL; move_node = move_node->next) {
+        // Make move, evaluate it, (and unmake move if necessary)
+        move m = (move) move_node->data;
+        memcpy(tmpBBoard, BBoard, numPieceTypes * sizeof(uint64_t));
+        make_move(tmpBBoard, m);
+        int currScore = -1 * negaMax(tmpBBoard, !whiteToMove, castling, enPassant, depth-1);
+
+        // If this is the best move, then return this score
+        if (currScore > bestScore) {
+            bestScore = currScore;
+        }
+    }
+
+    free(tmpBBoard);
+    free_linked_list(move_list);
+    return bestScore;
+}
+
+
+/**
  * Given bitboards and metadata, calculates the best move using MiniMax algorithm
  * @param tokens ie. bitboards, whiteToMove, castling, other FEN info
+ * @param bestMove Pointer to the best move
  * @return move, a pointer to a move_info struct
  */
-void *AIMove(FEN tokens) {
-    getMoves(tokens->BBoard, tokens->whiteToMove, tokens->castling, tokens->enPassant);
-    return 0;
+move AIMove(FEN tokens, move bestMove) {
+    // Generate all possible legal moves
+    uint64_t *BBoard = tokens->BBoard;
+    bool whiteToMove = tokens->whiteToMove;
+    uint64_t castling = tokens->castling;
+    uint64_t enPassant = tokens->enPassant;
+    node move_list = getMoves(BBoard, whiteToMove, castling, enPassant);
+    if (move_list == NULL) {
+        printf("No moves possible. Stalemate or checkmate\n");
+        exit(1);
+    }
+
+    // With all possible moves, use negaMax to find best move
+    // AIMove serves as a root negaMax, which returns the best move instead of score
+    int depth = DEPTH;
+    ASSERT(depth > 0);
+    int bestScore = INT_MIN;
+    uint64_t *tmpBBoard = malloc(numPieceTypes * sizeof(uint64_t));
+    for (node move_node = move_list; move_node != NULL; move_node = move_node->next) {
+        // Make move, evaluate it, (and unmake move if necessary)
+        move m = (move) move_node->data;
+        if (m->from == e4 && m->to == d5) {
+            printf("This should be money move\n");
+        }
+        memcpy(tmpBBoard, BBoard, numPieceTypes * sizeof(uint64_t));
+        make_move(tmpBBoard, m);
+        int currScore = -negaMax(tmpBBoard, !whiteToMove, castling, enPassant, depth-1);
+
+        // If this is the best move, then store it
+        if (currScore > bestScore) {
+            bestScore = currScore;
+            bestMove->from = m->from;
+            bestMove->to = m->to;
+            bestMove->piece = m->piece;
+        }
+    }
+
+    free(tmpBBoard);
+    free_linked_list(move_list);
+    return bestMove;
 }
 
 
@@ -464,28 +550,37 @@ void *AIMove(FEN tokens) {
  * The meat of script, does anything and everything right now
  * @return An exit code (0 = successful exit)
  */
-int main() {
-#ifdef DEBUG
+int main(void) {
+#if DEBUG
     printf("Debugging mode is on!\n");
 #endif
     // Input FEN String
     char *board_fen = malloc(sizeof(char) * 100);
-    strcpy(board_fen, "rnbqkbnr/ppp1pppp/8/8/8/8/PP3PPP/RNBQK2R w KQkq - 0 1");  /// Input a FEN_string here!
+    strcpy(board_fen, "rnbqkbnr/ppN2ppp/4p3/3p4/3P1B2/8/PPP1PPPP/R2QKBNR b KQkq - 0 1");  /// Input a FEN_string here!
 
     // Extract info from FEN string
     FEN tokens = extract_fen_tokens(board_fen);
 
-#ifdef DEBUG
+#if DEBUG
     render_all(tokens->BBoard);
     int score = evaluateMaterial(tokens->BBoard, tokens->whiteToMove);
-    printf("Score: %d \n", score);  // NOTE: need to print negative score if is black playing
+    printf("Score: %d \n", score);
 #endif
 
     /// Do AI stuff here;
-    node move_list = AIMove(tokens);
+    move bestMove = calloc(1, sizeof(struct move_info));
+    AIMove(tokens, bestMove);
+
+    printf("Before AI move - ");
+    render_all(tokens->BBoard);
+
+    make_move(tokens->BBoard, bestMove);
+
+    printf("After AI move - ");
+    render_all(tokens->BBoard);
 
     // Free pointers
-    free_linked_list(move_list);
+    free(bestMove);
     free_tokens(tokens);
     free(board_fen);
     return 0;

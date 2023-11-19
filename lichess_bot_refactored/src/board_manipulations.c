@@ -85,17 +85,29 @@ uint64_t southEastRay(enum enumSquare sq) {return antiDiagMask(sq) & (1UL << sq)
  * BOARD MANIPULATIONS
 *********************/
 void make_move(uint64_t *BBoard, move m) {
+    int whiteToMove = !(m->piece / colorOffset);
+    uint64_t from_bit = (1UL << m->from);
+    uint64_t to_bit = (1UL << m->to);
     // Change the board containing specific piece
     uint64_t piece_board = BBoard[m->piece];
-    ASSERT(piece_board & (1UL << m->from));  // from index should be occupied
-    ASSERT(!(piece_board & (1UL << m->to)));  // to index should be empty
-    piece_board = piece_board - (1UL << m->from) + (1UL << m->to);
+    ASSERT(piece_board & from_bit);  // from index should be occupied
+    ASSERT(!(piece_board & to_bit));  // to index should be empty
+    piece_board = piece_board - from_bit + to_bit;
     BBoard[m->piece] = piece_board;
 
     // Change the board containing specific color
-    uint64_t color_board = BBoard[whiteAll + 7 * (m->piece / 7)];
-    ASSERT(color_board & (1UL << m->from));  // from index should be occupied
-    ASSERT(!(color_board & (1UL << m->to)));  // to index should be empty
-    color_board = color_board - (1UL << m->from) + (1UL << m->to);
+    uint64_t color_board = BBoard[whiteAll + colorOffset * !whiteToMove];
+    ASSERT(color_board & from_bit);  // from index should be occupied
+    ASSERT(!(color_board & to_bit));  // to index should be empty
+    color_board = color_board - from_bit + to_bit;
     BBoard[whiteAll + 7 * (m->piece / 7)] = color_board;
+
+    // Check all enemy boards and capture if relevant
+    for (enum EPieceType i = 0; i < colorOffset; i++) {
+        // If whiteToMove == 1, then loop through black pieces [7, 14)
+        uint64_t board = BBoard[i + colorOffset * whiteToMove];
+        board = board & ~to_bit;
+        BBoard[i + colorOffset * whiteToMove] = board;
+    }
 }
+

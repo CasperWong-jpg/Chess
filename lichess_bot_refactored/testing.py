@@ -2,7 +2,7 @@ import sys
 
 from ctypes import *
 
-so_file = sys.path[0] + "/ChessEngine.so"
+so_file = sys.path[0] + "/bin/ChessEngine.so"
 ChessEngine = CDLL(so_file)
 
 

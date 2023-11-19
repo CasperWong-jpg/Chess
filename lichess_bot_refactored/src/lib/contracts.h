@@ -33,7 +33,7 @@
 #undef IF_DEBUG
 #endif
 
-#ifdef DEBUG
+#if DEBUG
 
 #define ASSERT(COND) assert(COND)
 #define REQUIRES(COND) assert(COND)

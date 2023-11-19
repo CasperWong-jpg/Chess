@@ -7,7 +7,6 @@
 #ifndef CHESS_DATASTRUCTS_H
 #define CHESS_DATASTRUCTS_H
 
-#define num_pieceTypes 14
 
 /*
  * Generic linked list node
@@ -25,11 +24,15 @@ typedef struct Node *node;
  * Useful board enums
  */
 enum EPieceType {  // [0, 14)
-    whitePawns, whiteKnights, whiteBishops, whiteRooks, 
-    whiteQueens, whiteKing, whiteAll, 
+    whitePawns=0, whiteKnights=1, whiteBishops=2, whiteRooks=3,
+    whiteQueens=4, whiteKing=5, whiteAll=6,
 
-    blackPawns, blackKnights, blackBishops, blackRooks,
-    blackQueens, blackKing, blackAll
+    colorOffset=7,
+
+    blackPawns=7, blackKnights=8, blackBishops=9, blackRooks=10,
+    blackQueens=11, blackKing=12, blackAll=13,
+
+    numPieceTypes=14
 };
 
 enum enumSquare {  // [0, 64)

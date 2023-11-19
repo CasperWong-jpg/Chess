@@ -65,16 +65,9 @@ uint64_t southEastRay(enum enumSquare sq);
  * @param BBoard
  * @param m
  * @return Nothing. BBoard will be changed
+ * TODO: Implement unmake move instead of using memcpy to improve performance
+ *   make_move will need to return captured piece type to restore again
  */
 void make_move(uint64_t *BBoard, move m);
-
-
-/**
- * Unmake move specified by m on the board BBoard
- * @param BBoard
- * @param m
- * @return Nothing. BBoard will be changed
- */
-void unmake_move(uint64_t *BBoard, move m);
 
 #endif //CHESS_BOARD_MANIPULATIONS_H

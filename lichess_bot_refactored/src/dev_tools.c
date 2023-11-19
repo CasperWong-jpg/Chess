@@ -86,7 +86,7 @@ uint64_t *fen2bit(char *board_fen) {
     REQUIRES(board_fen != NULL);
 
     // Create bitboard
-    uint64_t *bitBoard = calloc(num_pieceTypes, sizeof(uint64_t));    // all 0's
+    uint64_t *bitBoard = calloc(numPieceTypes, sizeof(uint64_t));    // all 0's
     ASSERT(bitBoard != NULL);
 
     // Flip the fen board so that a1 is at top left – represented as string array
@@ -199,7 +199,7 @@ FEN extract_fen_tokens(char *fen_string) {
     // TODO: Could store these as an array of enumSquares
     fen_string = strtok(NULL, " ");
     tokens->castling = 0;
-    for (char c = 0; fen_string[c] != '\0'; c++) {
+    for (int c = 0; fen_string[c] != '\0'; c++) {
         ASSERT(c < 4);
         switch (fen_string[c]) {
             case '-':  // No castling options
@@ -233,7 +233,7 @@ FEN extract_fen_tokens(char *fen_string) {
     fen_string = strtok(NULL, " ");
     tokens->fullMove = atoi(fen_string);  // At most 2 chars
 
-    ASSERT(fen_string == NULL);
+    ASSERT(fen_string != NULL);
 
     tokens->BBoard = fen2bit(board_fen);
     return tokens;

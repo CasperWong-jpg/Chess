@@ -1,7 +1,7 @@
 
 .DS_Store
 lichess_bot_refactored/.DS_Store
-lichess_bot_refactored/lib/.DS_Store
+lichess_bot_refactored/src/lib/.DS_Store
 lichess_bot_refactored/a.out
 lichess_bot_refactored/a.out.dSYM/Contents/Info.plist
 lichess_bot_refactored/a.out.dSYM/Contents/Resources/DWARF/a.out
@@ -69,6 +69,6 @@ CMakeFiles/CMakeOutput.log
 CMakeFiles/Makefile2
 CMakeFiles/progress.marks
 CMakeFiles/TargetDirectories.txt
-lichess_bot_refactored/ChessEngine.c
+lichess_bot_refactored/src/ChessEngine.c
 *.o
 *.d
