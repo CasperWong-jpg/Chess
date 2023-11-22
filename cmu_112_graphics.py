@@ -169,7 +169,6 @@ except ModuleNotFoundError: failedImport('requests')
 
 def getHash(obj):
     # This is used to detect MVC violations in redrawAll
-    # @TODO: Make this more robust and efficient
     try:
         return getHash(obj.__dict__)
     except:

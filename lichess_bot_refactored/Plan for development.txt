@@ -1,0 +1,59 @@
+Top-down design for Chess Engine:
+
+This chess engine is optimized for the Lichess API.
+So, the representation of board and moves may be less intuitive to understand than original Engine
+
+___________
+Chess Engine I/O:
+
+Input: FEN representation of board (string)
+  Ie. rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+See https://www.chess.com/terms/fen-chess for how to read FEN
+
+Output: A UCI format move (string)
+  Ie. e2e4, e1g1 (white short castling), e7e8q (pawn promotion)
+
+___________
+Implementation stages (test after each stage):
+Reference guide – https://www.freecodecamp.org/news/simple-chess-ai-step-by-step-1d55a9266977/
+
+1. Material evaluation
+ – Done basic evaluation!
+  5. Further steps: can better improve material evaluation, but do after board pos evaluation
+  – See: https://www.chessprogramming.org/Material
+
+2a. Check pseudo-legal moves
+2b. Move generation: generateMoves(bitboards, color, castling, pawnPromotion)
+Move generation algorithm:
+  - Generate all moves for a piece
+    - Categorize by piece type: knight, king, pawn, sliding pieces
+    - Represent move using a struct
+    - Return an array of these moves
+
+
+3. Minimax
+- Alpha beta pruning
+
+Board position
+(Tables available in guide)
+
+Opening book
+
+___________
+Testing:
+
+Don't forget to do Valgrind tests!!
+
+Can do testing using Lichess analysis board
+ - https://lichess.org/analysis
+
+Once Minimax done, can start testing on Lichess itself
+
+___________
+Calling C functions in Python:
+Documentation: https://docs.python.org/3/library/ctypes.html 
+Simple guide: https://www.journaldev.com/31907/calling-c-functions-from-python
+- Don't forget to marshal data types (example here: https://realpython.com/python-bindings-overview/)
+
+Basically, run this command in terminal: " cc -fPIC -shared -o ChessEngine.so dataStructs.c ChessEngine.c -Wall -Wextra -Werror -Wshadow -std=c99 -pedantic -g -fwrapv -DDEBUG "
+Without debugging (ie. Implementation ready!): " cc -fPIC -shared -o ChessEngine.so dataStructs.c ChessEngine.c "

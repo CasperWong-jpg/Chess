@@ -41,4 +41,5 @@ Directions for Mac
 
 __________
 Coming soon:
-Better evaluation heuristics (ie. Piece-square tables) https://www.freecodecamp.org/news/simple-chess-ai-step-by-step-1d55a9266977/ 
+A new chess engine made in C using bit boards (for peak efficiency) and improved evaluation heuristics (ie. Piece-square tables, opening book)
+Stay tuned!

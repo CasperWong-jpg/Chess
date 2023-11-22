@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "stdlib.h": "c",
+        "__locale": "c",
+        "stdio.h": "c",
+        "contracts.h": "c",
+        "datastructs.h": "c"
+    }
+}
