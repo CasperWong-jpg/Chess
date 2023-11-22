@@ -9,8 +9,8 @@
  *       Comment code :)
  *  4. TODO: (Optional) Castling (take tokens as arguments) + en passant
  *  5. DONE! Do legality checks (tryMove & isInCheck)
- *  6. Done! MiniMax!!
- *  7. TODO: Alpha-beta pruning!
+ *  6. Done! MiniMax!! TODO: Alpha-beta pruning!
+ *  7. TODO: Better heuristics (ie. good board position)
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -242,74 +242,49 @@ uint64_t generatePawnMoves(enum enumSquare pawn_index, uint64_t *BBoard, bool wh
  * MAIN MOVE HELPERS
 **********************/
 /**
- * Initialize a linked list, where data contains: piece types + corresponding functions used in move generation
+ * Initialize a linked list of piece types for one color + corresponding functions used in move generation
  * @return Head of a generic linked list, which contains generic_get_move pointers as data
  */
-node get_pieces_struct(uint64_t castling, uint64_t enPassant) {
-    /// Wrap below into a for loop, and change it so that pieceType can be black or white (then we can delete offsets)
-    node head = malloc(sizeof(node));
-    node piece_node = head;
+node get_pieces_struct(uint64_t castling, uint64_t enPassant, bool whiteToMove) {
+    generic_fp func_table[whiteAll] = {(generic_fp)generatePawnMoves, (generic_fp)generateKnightMoves,
+                                       (generic_fp)generateBishopMoves, (generic_fp)generateRookMoves,
+                                       (generic_fp)generateQueenMoves, (generic_fp)generateKingMoves };
+    node head = NULL;
+    node piece_node;
+    generic_get_move piece_list;
 
-    // Initialize for pawns
-    generic_get_move piece_list = malloc(sizeof(struct generic_get_move_struct));
-    ASSERT(piece_list != NULL);
-    piece_list->pieceType = whitePawns;
-    piece_list->move_gen_func_ptr.additional = &generatePawnMoves;
-    piece_list->initialized = true;
-    piece_list->additional_data = enPassant;
-    piece_node->data = (void *) piece_list;
-    piece_node->next = malloc(sizeof(node));
+    for (enum EPieceType pieceType = whitePawns; pieceType < whiteAll; pieceType++) {
+        if (head == NULL) {  // Create list head
+            head = malloc(sizeof(node));
+            piece_node = head;
+        }
+        else {  // Extend existing list
+            piece_node->next = malloc(sizeof(node));
+            piece_node = piece_node->next;
+        }
 
-    // Initialize for knights
-    piece_node = piece_node->next;
-    piece_list = malloc(sizeof(struct generic_get_move_struct));
-    ASSERT(piece_list != NULL);
-    piece_list->pieceType = whiteKnights;
-    piece_list->move_gen_func_ptr.normal = &generateKnightMoves;
-    piece_list->initialized = false;
-    piece_node->data = (void *) piece_list;
-    piece_node->next = malloc(sizeof(node));
+        piece_list = malloc(sizeof(struct generic_get_move_struct));
+        piece_list->pieceType = pieceType + !whiteToMove * colorOffset;
+        switch (pieceType) {  // Pawns and kings need additional data for their moves
+            case whitePawns:
+                piece_list->move_gen_func_ptr.additional = (additional_move_fp)func_table[pieceType];
+                piece_list->initialized = true;
+                piece_list->additional_data = enPassant;
+                break;
+            case whiteKing:
+                piece_list->move_gen_func_ptr.additional = (additional_move_fp)func_table[pieceType];
+                piece_list->initialized = true;
+                piece_list->additional_data = castling;
+                break;
+            default:
+                piece_list->move_gen_func_ptr.normal = (normal_move_fp)func_table[pieceType];
+                piece_list->initialized = false;
+                break;
+        }
 
-    // Initialize for bishops
-    piece_node = piece_node->next;
-    piece_list = malloc(sizeof(struct generic_get_move_struct));
-    ASSERT(piece_list != NULL);
-    piece_list->pieceType = whiteBishops;
-    piece_list->move_gen_func_ptr.normal = &generateBishopMoves;
-    piece_list->initialized = false;
-    piece_node->data = (void *) piece_list;
-    piece_node->next = malloc(sizeof(node));
-
-    // Initialize for rooks
-    piece_node = piece_node->next;
-    piece_list = malloc(sizeof(struct generic_get_move_struct));
-    ASSERT(piece_list != NULL);
-    piece_list->pieceType = whiteRooks;
-    piece_list->move_gen_func_ptr.normal = &generateRookMoves;
-    piece_list->initialized = false;
-    piece_node->data = (void *) piece_list;
-    piece_node->next = malloc(sizeof(node));
-
-    // Initialize for queens
-    piece_node = piece_node->next;
-    piece_list = malloc(sizeof(struct generic_get_move_struct));
-    ASSERT(piece_list != NULL);
-    piece_list->pieceType = whiteQueens;
-    piece_list->move_gen_func_ptr.normal = &generateQueenMoves;
-    piece_list->initialized = false;
-    piece_node->data = (void *) piece_list;
-    piece_node->next = malloc(sizeof(node));
-
-    // Initialize for king
-    piece_node = piece_node->next;
-    piece_list = malloc(sizeof(struct generic_get_move_struct));
-    ASSERT(piece_list != NULL);
-    piece_list->pieceType = whiteKing;
-    piece_list->move_gen_func_ptr.additional = &generateKingMoves;
-    piece_list->initialized = true;
-    piece_list->additional_data = castling;
-    piece_node->data = (void *) piece_list;
-    piece_node->next = NULL;
+        piece_node->data = (void *) piece_list;  // Add data to list node
+        piece_node->next = NULL;
+    }
 
     return head;
 }
@@ -334,12 +309,12 @@ bool isInCheck(uint64_t *BBoard, bool whiteMoved) {
     */
     // Get king board for friendly color, and all piece types
     uint64_t kingBoard = BBoard[whiteKing + !whiteMoved * colorOffset];
-    node piece_list = get_pieces_struct(0, 0);  // Castling and en-passant irrelevant
+    node piece_list = get_pieces_struct(0, 0, !whiteMoved);  // Castling and en-passant irrelevant
 
     for (node piece_node = piece_list; piece_node != NULL; piece_node = piece_node->next) {
         // Loop through enemy piece types & boards
         generic_get_move piece = (generic_get_move) piece_node->data;
-        uint64_t pieceBoard = BBoard[piece->pieceType + whiteMoved * colorOffset];
+        uint64_t pieceBoard = BBoard[piece->pieceType];
 
         while (pieceBoard) {
             // For each piece, generate all pseudo-legal moves
@@ -399,13 +374,13 @@ bool checkMoveLegal(uint64_t *BBoard, bool whiteToMove, move m) {
  * @return An linked list of move_info pointers that contain all legal knight moves
  */
 node getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t enPassant) {
-    node piece_list = get_pieces_struct(castling, enPassant);
+    node piece_list = get_pieces_struct(castling, enPassant, whiteToMove);
     node move_head = NULL;
     node move_list = move_head;
 
     for (node piece_node = piece_list; piece_node != NULL; piece_node = piece_node->next) {
         generic_get_move piece = (generic_get_move) piece_node->data;
-        uint64_t pieceBoard = BBoard[piece->pieceType + !whiteToMove * colorOffset];
+        uint64_t pieceBoard = BBoard[piece->pieceType];
 #if DEBUG
         printf("Piece board for piece type %d - ", piece->pieceType);
         render_single(pieceBoard);
@@ -432,7 +407,7 @@ node getMoves(uint64_t *BBoard, bool whiteToMove, uint64_t castling, uint64_t en
                 move m = malloc(sizeof(struct move_info));
                 m->from = piece_index;
                 m->to = piece_move;
-                m->piece = piece->pieceType + !whiteToMove * colorOffset;
+                m->piece = piece->pieceType;
                 if (checkMoveLegal(BBoard, whiteToMove, m)) {
                     // Legal move: add to list of possible moves
                     if (move_list == NULL) {
@@ -543,6 +518,37 @@ move AIMove(FEN tokens, move bestMove) {
     free(tmpBBoard);
     free_linked_list(move_list);
     return bestMove;
+}
+
+
+/**
+ * The meat of script, does anything and everything right now
+ * @return An exit code (0 = successful exit)
+ */
+char *lichess(char *board_fen, char *moveString) {
+    // Extract info from FEN string
+    FEN tokens = extract_fen_tokens(board_fen);
+
+    /// Do AI stuff here;
+    move bestMove = calloc(1, sizeof(struct move_info));
+    AIMove(tokens, bestMove);
+
+    printf("Before AI move - ");
+    render_all(tokens->BBoard);
+
+    make_move(tokens->BBoard, bestMove);
+
+    printf("After AI move - ");
+    render_all(tokens->BBoard);
+
+    enumSquare_to_string(moveString, bestMove->from);
+    enumSquare_to_string(&moveString[2], bestMove->to);
+    moveString[4] = '\0';
+
+    // Free pointers
+    free(bestMove);
+    free_tokens(tokens);
+    return moveString;
 }
 
 

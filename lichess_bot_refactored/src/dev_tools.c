@@ -196,7 +196,6 @@ FEN extract_fen_tokens(char *fen_string) {
     else tokens->whiteToMove = 0;
 
     // Get castling rights
-    // TODO: Could store these as an array of enumSquares
     fen_string = strtok(NULL, " ");
     tokens->castling = 0;
     for (int c = 0; fen_string[c] != '\0'; c++) {
@@ -256,13 +255,7 @@ void free_linked_list (node curr) {
 }
 
 
-char *greeting(char *name) {
-    printf("Name received: %s \n", name);
-    printf("String length: %lu \n", strlen(name));
-
-    char str1[] = "Hi ";
-    char *res = malloc(sizeof(char) * (strlen(str1) + strlen(name)));
-    strcpy(res, str1);
-    strcat(res, name);
-    return res;
+void enumSquare_to_string(char *res, enum enumSquare square) {
+    res[0] = 'a' + square % 8;
+    res[1] = '1' + square / 8;
 }

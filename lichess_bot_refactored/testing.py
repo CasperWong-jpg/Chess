@@ -1,19 +1,11 @@
 import sys
 
-from ctypes import *
+import ctypes
 
 so_file = sys.path[0] + "/bin/ChessEngine.so"
-ChessEngine = CDLL(so_file)
+ChessEngine = ctypes.CDLL(so_file)
+ChessEngine.lichess.restype = ctypes.c_char_p
 
-
-ChessEngine.AIMove(b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-print(ChessEngine.bitScanForward(16))
-
-"""
-# NOTE: passing string input and outputs template
-ChessEngine.greeting.restype = c_char_p    # func returns bytes literal
-res_bytes = ChessEngine.greeting(b"Casper")
-res = res_bytes.decode()
-
+res = ""
+res = ChessEngine.lichess(b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", res)
 print(res)
-"""

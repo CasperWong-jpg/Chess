@@ -61,10 +61,9 @@ void free_linked_list (node curr);
 
 
 /**
- * Tests if strings passed in from Python are successfully parsed
- * @param name A string - should be passed in by Python (ie. FEN string).
- * @return Returns a char for Python API to print
+ * Converts enumSquare (a4 = 3) to corresponding string ("a4"), and stores it in res string
+ * @param res
+ * @param square
  */
-char *greeting(char *name);
-
+void enumSquare_to_string(char *res, enum enumSquare square);
 #endif //CHESS_DEV_TOOLS_H

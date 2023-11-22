@@ -12,7 +12,7 @@ all: playable
 # Create shared object file that can be called by Python function
 lichess: $(SOURCES) $(HEADERS)
 	mkdir -p $(OUTPUTDIR)
-	$(COMPILER) -o $(OUTPUTDIR)/ChessEngine.so -fPIC -shared $(CFLAGS) $(DEBUGFLAGS) $(SOURCES)
+	$(COMPILER) -o $(OUTPUTDIR)/ChessEngine.so -fPIC -shared $(CFLAGS) $(SOURCES)
 
 # Create command line executable to simulate gameplay
 playable: $(SOURCES) $(HEADERS)

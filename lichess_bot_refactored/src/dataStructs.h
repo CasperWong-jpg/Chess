@@ -84,6 +84,14 @@ const int LS1Bindex64[64];  // Used for efficient bit-scanning
 
 
 /**
+ * Move generation function type definitions
+ */
+typedef uint64_t (*normal_move_fp) (enum enumSquare, uint64_t *, bool);
+typedef uint64_t (*additional_move_fp) (enum enumSquare, uint64_t *, bool, uint64_t);
+typedef uint64_t (*generic_fp) (void);
+
+
+/**
  * Generic move generation structs
  */
 struct generic_get_move_struct {
