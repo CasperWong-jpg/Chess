@@ -1,5 +1,10 @@
+# Project Description
+
+__________
+
 ## Python Chess App and AI
-Description: This project is a fully functional version of the board game chess, which checks for and enforcing rules such as castling, pawn promotion, and checkmate. 
+See: https://www.youtube.com/watch?v=XATnYZ4gT1Y
+Description: This project is a fully functional version of the board game chess, which checks for and enforces rules such as castling, pawn promotion, and checkmate. 
 
 In the GUI version (which requires module installation), the game can be played by two people on the same computer, and also by one person against various AI difficulties. Users may also play another chess variant called Crazyhouse, where users can place any piece that they capture on the board as their own!
 
@@ -7,6 +12,7 @@ In the command line interface version (which does not require external modules),
 
 Finally, this chess engine can also be easily connected to a Lichess bot account, where it can automatically play others on this online chess platform!
 __________
+
 ### How to run GUI project:
 1. Install the PIL/Pillow and Requests modules.
   - `pip3 install pillow`
@@ -24,7 +30,7 @@ If there are issues downloading PIL/Pillow and Requests, you can play on a simpl
 1. From repo home directory, run `python3 main_CLI.py`
 __________
 
-### How to implement as Lichess bot:
+### How to run as Lichess bot:
 See instructions here: https://github.com/ShailChoksi/lichess-bot
 
 Directions:
