@@ -72,3 +72,4 @@ CMakeFiles/TargetDirectories.txt
 lichess_bot_C/src/ChessEngine.c
 *.o
 *.d
+*.dSYM
