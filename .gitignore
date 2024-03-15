@@ -1,10 +1,10 @@
 
 .DS_Store
-lichess_bot_refactored/.DS_Store
-lichess_bot_refactored/src/lib/.DS_Store
-lichess_bot_refactored/a.out
-lichess_bot_refactored/a.out.dSYM/Contents/Info.plist
-lichess_bot_refactored/a.out.dSYM/Contents/Resources/DWARF/a.out
+lichess_bot_C/.DS_Store
+lichess_bot_C/src/lib/.DS_Store
+lichess_bot_C/a.out
+lichess_bot_C/a.out.dSYM/Contents/Info.plist
+lichess_bot_C/a.out.dSYM/Contents/Resources/DWARF/a.out
 __pycache__/ChessEngine.cpython-310.pyc
 *.pyc
 cmake-build-debug/.cmake/api/v1/query/cache-v2
@@ -25,12 +25,12 @@ CMakeLists.txt
 .idea/modules.xml
 .idea/misc.xml
 .idea/Chess.iml
-lichess_bot_refactored/.idea/lichess_bot_refactored.iml
-lichess_bot_refactored/.idea/modules.xml
-lichess_bot_refactored/.idea/vcs.xml
-lichess_bot_refactored/.idea/workspace.xml
-lichess_bot_refactored/.vscode/c_cpp_properties.json
-lichess_bot_refactored/.vscode/settings.json
+lichess_bot_C/.idea/lichess_bot_C.iml
+lichess_bot_C/.idea/modules.xml
+lichess_bot_C/.idea/vcs.xml
+lichess_bot_C/.idea/workspace.xml
+lichess_bot_C/.vscode/c_cpp_properties.json
+lichess_bot_C/.vscode/settings.json
 cmake-build-debug/Testing/Temporary/LastTest.log
 cmake-build-debug/CMakeFiles/TargetDirectories.txt
 cmake-build-debug/CMakeFiles/rules.ninja
@@ -58,9 +58,9 @@ CMakeFiles/Chess.dir/compiler_depend.make
 CMakeFiles/Chess.dir/compiler_depend.ts
 CMakeFiles/Chess.dir/depend.make
 CMakeFiles/Chess.dir/flags.make
-CMakeFiles/Chess.dir/lichess_bot_refactored/ChessEngine.c.o
-CMakeFiles/Chess.dir/lichess_bot_refactored/ChessEngine.c.o.d
-CMakeFiles/Chess.dir/lichess_bot_refactored/lib/hdict.c.o.d
+CMakeFiles/Chess.dir/lichess_bot_C/ChessEngine.c.o
+CMakeFiles/Chess.dir/lichess_bot_C/ChessEngine.c.o.d
+CMakeFiles/Chess.dir/lichess_bot_C/lib/hdict.c.o.d
 CMakeFiles/Chess.dir/link.txt
 CMakeFiles/Chess.dir/progress.make
 CMakeFiles/cmake.check_cache
@@ -69,6 +69,6 @@ CMakeFiles/CMakeOutput.log
 CMakeFiles/Makefile2
 CMakeFiles/progress.marks
 CMakeFiles/TargetDirectories.txt
-lichess_bot_refactored/src/ChessEngine.c
+lichess_bot_C/src/ChessEngine.c
 *.o
 *.d

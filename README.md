@@ -8,39 +8,41 @@ In the command line interface version (which does not require external modules),
 Finally, this chess engine can also be easily connected to a Lichess bot account, where it can automatically play others on this online chess platform!
 __________
 ### How to run GUI project:
-0. Download Code as a ZIP. Install the PIL/Pillow and Requests modules (see below for instructions).
-
-1. Open main.py file 
-  – I would recommend using VSCode and installing the Python extension by Microsoft within the software
-
-2. Change line 16 of main.py so that you provide the path from current terminal directory to the "Chess-main" folder
+1. Install the PIL/Pillow and Requests modules.
+  - `pip3 install pillow`
+  - `pip3 install requests`
  
-3. Run main.py and enjoy!
+2. From repo directory, `python3 main_GUI.py` 
 
+3. Enjoy!
 
-Modules and libraries to download:
-PIL/Pillow and Requests
- - Instructions for download found here: https://www.cs.cmu.edu/~112/notes/notes-animations-part1.html
 __________
 
 ### How to run command line interface project:
 If there are issues downloading PIL/Pillow and Requests, you can play on a simple command line interface, which does not require module installment.
 
-1. Open simple-main.py (using an editor like VSCode) and run!
+1. From repo home directory, run `python3 main_CLI.py`
 __________
 
 ### How to implement as Lichess bot:
 See instructions here: https://github.com/ShailChoksi/lichess-bot
 
-Directions for Mac
-1. Change terminal to lichess_bot directory
-2. Run: " python3 lichess-bot.py " 
+Directions:
+1. From repo directory, run on terminal `cd lichess_bot_Python`
+2. Change lichess_bot/config.yml OAuth token to bot account you own
+3. Run `python3 lichess-bot.py`
 
 __________
-## Advanced Chess Engine
-Description: There is a second chess engine made in C using bitboards (for better efficiency) and improved evaluation heuristics (ie. Piece-square tables, opening book). This can be found in `lichess_bot_refactored`. Note that this is purely a chess engine - it takes in a FEN string representing current board state, and returns the best move as another string. This bot is made to interface with the Lichess API
+## Advanced C Chess Engine
+Description: There is a second chess engine made in C using bitboards (for better efficiency in move generation) and improved evaluation heuristics (ie. Piece-square tables, opening book). This can be found in `lichess_bot_C`. Note that this is purely a chess engine - it takes in a FEN string representing current board state, and returns the best move as another string. It does not keep track of previous game states, so is not playable standalone. This bot is made to interface with the Lichess API.
+
+OpenMP has been used to provide linear speedup on a standard 8 core computer. See [Parallel Chess](https://github.com/CasperWong-jpg/ParallelChess) repo for more documentation and detailed commits.
+
 __________
 
 ### How to run
-1. Change to lichess_bot_refactored directory
+1. Change to lichess_bot_C directory
 2. Run `make lichess` to create shared library file (chess engine can be involved through Python script) or `make playable` in which user manually supplies FEN string and engine returns best move.
+3. cd `lichess_bot`
+4. Change `lichess_bot/config.yml` OAuth token to bot account you own
+5. `python3 lichess-bot.py`
